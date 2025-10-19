@@ -287,10 +287,11 @@ document.addEventListener('DOMContentLoaded', () => {
         shareReplayBtn.disabled = true;
         shareReplayBtn.style.opacity = '0.5';
         shareReplayBtn.style.cursor = 'wait';
-        shareReplayBtn.textContent = 'Rendering...';
 
         try {
-            // Get current user info
+            // Lazy-load composition only when needed
+            const { ReplayComposition } = await import('./composition.jsx');
+
             try {
                 const currentUser = await window.websim.getCurrentUser();
                 replayConfig.currentUser = currentUser;
@@ -303,44 +304,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const durationInSeconds = (replayData.frames[replayData.frames.length - 1].timestamp - replayData.frames[0].timestamp) / 1000;
             const durationInFrames = Math.ceil(durationInSeconds * 30) + 90; // Add 3 seconds for end screen
 
-            // Dynamically import renderer
-            const { renderVideo } = await import('https://esm.websim.com/@websim/remotion/renderer');
-            const { ReplayComposition } = await import('./composition.jsx');
+            if (typeof window.websim.renderAndPost !== 'function') {
+                throw new Error("The 'renderAndPost' feature is not available. Please try updating your environment.");
+            }
 
-            // Render the video
-            const videoBlob = await renderVideo({
+            // Use the integrated websim function to handle rendering and posting
+            await window.websim.renderAndPost({
                 component: ReplayComposition,
                 durationInFrames: durationInFrames,
                 fps: 30,
                 compositionWidth: 540,
                 compositionHeight: 960,
                 inputProps: { replayData },
-                onProgress: ({ progress }) => {
-                    shareReplayBtn.textContent = `${Math.round(progress * 100)}%`;
+                comment: {
+                    content: `Check out my score of ${score}!`,
                 },
+                fileName: 'circle-tap-replay.mp4'
             });
-
-            shareReplayBtn.textContent = 'Uploading...';
-
-            // Upload the video blob
-            const videoFile = new File([videoBlob], "replay.mp4", { type: "video/mp4" });
-            const videoUrl = await window.websim.upload(videoFile);
-
-            // Post to comments with video
-            await window.websim.postComment({
-                content: `Check out my Circle Tap score of ${score}! 🎯`,
-                images: [videoUrl], // Pass video URL in the images array
-            });
-
-            shareReplayBtn.textContent = 'Shared! ✓';
-            setTimeout(() => {
-                shareReplayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`;
-            }, 2000);
 
         } catch (error) {
             console.error("Failed to share replay:", error);
-            alert("Sorry, there was an error sharing your replay. Please try again.");
-            shareReplayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`;
+            alert(`Sorry, there was an error sharing your replay. ${error.message}`);
         } finally {
             shareReplayBtn.disabled = false;
             shareReplayBtn.style.opacity = '1';
