@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartBtn = document.getElementById('restart-btn');
     const difficultyBtns = document.querySelectorAll('.difficulty-btn');
     const replayBtn = document.getElementById('replay-btn');
+    const shareReplayBtn = document.getElementById('share-replay-btn');
     const replayContainer = document.getElementById('replay-container');
     const closeReplayBtn = document.getElementById('close-replay-btn');
 
@@ -280,6 +281,58 @@ document.addEventListener('DOMContentLoaded', () => {
         targetStartAngle = Math.PI / 4;
         angle = -Math.PI / 2;
         resizeCanvas(); // This will call draw()
+    });
+
+    shareReplayBtn.addEventListener('click', async () => {
+        shareReplayBtn.disabled = true;
+        shareReplayBtn.style.opacity = '0.5';
+        shareReplayBtn.style.cursor = 'wait';
+
+        try {
+            const { renderVideo } = await import('https://esm.websim.com/@websim/remotion/renderer');
+            const { ReplayComposition } = await import('./composition.jsx');
+
+            try {
+                const currentUser = await window.websim.getCurrentUser();
+                replayConfig.currentUser = currentUser;
+            } catch (error) {
+                console.warn("Could not get current user, proceeding without it.");
+                replayConfig.currentUser = null;
+            }
+            
+            const replayData = { frames: replayFrames, config: replayConfig };
+            const durationInSeconds = (replayData.frames[replayData.frames.length - 1].timestamp - replayData.frames[0].timestamp) / 1000;
+            const durationInFrames = Math.ceil(durationInSeconds * 30) + 90; // Add 3 seconds for end screen
+
+            const videoBlob = await renderVideo({
+                component: ReplayComposition,
+                durationInFrames: durationInFrames,
+                fps: 30,
+                compositionWidth: 540,
+                compositionHeight: 960,
+                inputProps: { replayData },
+                onProgress: ({ progress }) => {
+                    shareReplayBtn.innerHTML = `${Math.round(progress * 100)}%`;
+                },
+            });
+
+            const videoFile = new File([videoBlob], "replay.mp4", { type: "video/mp4" });
+            const videoUrl = await window.websim.upload(videoFile);
+
+            await window.websim.postComment({
+                content: `Check out my score of ${score}!`,
+                images: [videoUrl], // The 'images' field can accept video URLs
+            });
+
+        } catch (error) {
+            console.error("Failed to share replay:", error);
+            alert("Sorry, there was an error sharing your replay.");
+        } finally {
+            shareReplayBtn.disabled = false;
+            shareReplayBtn.style.opacity = '1';
+            shareReplayBtn.style.cursor = 'pointer';
+            shareReplayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`;
+        }
     });
 
     replayBtn.addEventListener('click', async () => {
