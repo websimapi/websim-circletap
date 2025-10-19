@@ -320,8 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const videoUrl = await window.websim.upload(videoFile);
 
             await window.websim.postComment({
-                content: `Check out my score of ${score}!`,
-                video_url: videoUrl,
+                content: `Check out my score of ${score}!\n\n${videoUrl}`,
+                images: [videoUrl],
             });
 
         } catch (error) {
