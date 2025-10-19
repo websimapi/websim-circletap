@@ -26,7 +26,8 @@ const renderPlayer = (data) => {
         controls: true,
         autoplay: true,
         inputProps: { replayData: data },
-        style: { width: "100%", height: "100%" }
+        style: { width: "100%", height: "100%" },
+        numberOfSharedAudioTags: 50
       },
       void 0,
       false,
