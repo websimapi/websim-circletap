@@ -33,11 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let targetSize = 0;
     let lastFrameTime = 0;
     let animationFrameId;
+    let currentDifficulty = 'easy';
 
     const difficulties = {
-        easy: { speed: 1.5 * Math.PI, size: Math.PI / 2 }, // Speed in radians per second
-        medium: { speed: 2.5 * Math.PI, size: Math.PI / 3 },
-        hard: { speed: 3.5 * Math.PI, size: Math.PI / 4 }
+        easy: { speed: 1.5 * Math.PI, size: Math.PI / 2, trackWidthFactor: 0.08 }, // Speed in radians per second
+        medium: { speed: 2.5 * Math.PI, size: Math.PI / 3, trackWidthFactor: 0.05 },
+        hard: { speed: 3.5 * Math.PI, size: Math.PI / 4, trackWidthFactor: 0.035 }
     };
 
     // Audio
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = size;
         
         radius = size * 0.4;
-        lineWidth = size * 0.05;
+        lineWidth = size * difficulties[currentDifficulty].trackWidthFactor;
         ctx.lineCap = 'butt';
         
         // Redraw if game is not active
@@ -99,6 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startGame(difficulty) {
+        currentDifficulty = difficulty;
+        resizeCanvas(); // Update track width for new difficulty
+
         initAudio(); // Initialize audio on first user interaction
         if (startSound) startSound();
         const settings = difficulties[difficulty];
@@ -227,10 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverMenu.classList.add('hidden');
         startMenu.classList.remove('hidden');
         // Reset to the initial preview state for the start menu
+        currentDifficulty = 'easy'; // Reset to easy for preview
         targetSize = difficulties.easy.size;
         targetStartAngle = Math.PI / 4;
         angle = -Math.PI / 2;
-        draw();
+        resizeCanvas(); // This will call draw()
     });
 
     const tapHandler = (e) => {
@@ -247,6 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
 
     // Initial setup
+    currentDifficulty = 'easy'; // Set for initial draw
     resizeCanvas();
     // Show a preview of the target zone on the start screen
     targetSize = difficulties.easy.size;
