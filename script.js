@@ -5,16 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // UI Elements
     const scoreDisplay = document.getElementById('score-display');
     const scoreEl = document.getElementById('score');
+    const levelDisplay = document.getElementById('level-display');
     const startMenu = document.getElementById('start-menu');
     const gameOverMenu = document.getElementById('game-over-menu');
     const finalScoreEl = document.getElementById('final-score');
     const restartBtn = document.getElementById('restart-btn');
     const difficultyBtns = document.querySelectorAll('.difficulty-btn');
     const replayBtn = document.getElementById('replay-btn');
-    const shareReplayBtn = document.getElementById('share-replay-btn');
     const replayContainer = document.getElementById('replay-container');
     const closeReplayBtn = document.getElementById('close-replay-btn');
-    const postReplayCommentBtn = document.getElementById('post-replay-comment-btn');
 
     // CSS Color variables
     const computedStyles = getComputedStyle(document.documentElement);
@@ -41,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDifficulty = 'easy';
     let replayFrames = [];
     let replayConfig = {};
+    let level, tapsThisLevel, tapsForNextLevel;
 
     const difficulties = {
         easy: { speed: 1.2 * Math.PI, size: 0.4, trackWidthFactor: 0.12 }, 
@@ -121,6 +121,17 @@ document.addEventListener('DOMContentLoaded', () => {
         direction = 1;
         scoreEl.textContent = score;
 
+        level = 1;
+        tapsThisLevel = 0;
+        tapsForNextLevel = 1;
+        levelDisplay.textContent = level;
+        levelDisplay.classList.remove('hidden', 'level-out', 'level-in');
+        
+        // Stagger the animation slightly
+        setTimeout(() => {
+            levelDisplay.classList.add('level-in');
+        }, 100);
+
         generateNewTarget();
         
         gameState = 'playing';
@@ -145,20 +156,27 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState = 'gameover';
         finalScoreEl.textContent = score;
         scoreDisplay.classList.add('hidden');
-        gameOverMenu.classList.remove('hidden');
+        // Keep level display visible, remove any animation classes
+        levelDisplay.classList.remove('level-in', 'level-out');
+
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         
-        // Add the final frame to the replay
+        // Add the final frame to the replay, ensuring level is included
         replayFrames.push({
             angle,
             targetStartAngle,
             targetSize,
             score,
+            level, 
             success: false,
             timestamp: performance.now(),
         });
 
-        // The last drawn frame from gameLoop will remain visible.
+        // Show game over menu immediately, and hide level display after a delay
+        gameOverMenu.classList.remove('hidden');
+        setTimeout(() => {
+            levelDisplay.classList.add('hidden');
+        }, 3000);
     }
 
     function draw() {
@@ -212,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
             targetStartAngle,
             targetSize,
             score,
+            level,
             timestamp: currentTime,
         });
 
@@ -250,6 +269,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (successSound) successSound();
             score++;
             scoreEl.textContent = score;
+            
+            tapsThisLevel++;
+            if (tapsThisLevel >= tapsForNextLevel) {
+                levelUp();
+            }
+
             direction *= -1; // Reverse direction
             speed *= 1.04; // Slightly increase speed
 
@@ -269,68 +294,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function shareReplayAction() {
-        const btn = postReplayCommentBtn.classList.contains('hidden') ? shareReplayBtn : postReplayCommentBtn;
+    function levelUp() {
+        levelDisplay.classList.remove('level-in');
+        levelDisplay.classList.add('level-out');
 
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'wait';
+        const onOutAnimationEnd = () => {
+            levelDisplay.removeEventListener('animationend', onOutAnimationEnd);
 
-        try {
-            const { renderVideo } = await import('https://esm.websim.com/@websim/remotion/renderer');
-            const { ReplayComposition } = await import('./composition.jsx');
+            level++;
+            tapsThisLevel = 0;
+            tapsForNextLevel = level;
 
-            // Ensure user info is fresh for rendering
-            try {
-                const currentUser = await window.websim.getCurrentUser();
-                replayConfig.currentUser = currentUser;
-            } catch (error) {
-                console.warn("Could not get current user, proceeding without it.");
-                replayConfig.currentUser = null;
-            }
-            
-            const replayData = { frames: replayFrames, config: replayConfig };
-            const durationInSeconds = (replayData.frames[replayData.frames.length - 1].timestamp - replayData.frames[0].timestamp) / 1000;
-            const durationInFrames = Math.ceil(durationInSeconds * 30) + 90; // Add 3 seconds for end screen
+            levelDisplay.textContent = level;
+            levelDisplay.classList.remove('level-out');
+            levelDisplay.classList.add('level-in');
 
-            const videoBlob = await renderVideo({
-                component: ReplayComposition,
-                durationInFrames: durationInFrames,
-                fps: 30,
-                compositionWidth: 540,
-                compositionHeight: 960,
-                inputProps: { replayData },
-                onProgress: ({ progress }) => {
-                    btn.textContent = `${Math.round(progress * 100)}%`;
-                },
-            });
-
-            const videoFile = new File([videoBlob], "replay.mp4", { type: "video/mp4" });
-            const videoUrl = await window.websim.upload(videoFile);
-
-            await window.websim.postComment({
-                content: `Check out my score of ${score}!`,
-                images: [videoUrl], // The 'images' field can accept video URLs
-            });
-
-            // Close the replay view if open
-            if (!replayContainer.classList.contains('hidden')) {
-                closeReplayBtn.click();
-            }
-
-        } catch (error) {
-            console.error("Failed to share replay:", error);
-            alert("Sorry, there was an error sharing your replay.");
-        } finally {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
-            if (btn === shareReplayBtn) {
-                 btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`;
-            } else {
-                btn.textContent = 'Post to Comments';
-            }
-        }
+            const onInAnimationEnd = () => {
+                levelDisplay.removeEventListener('animationend', onInAnimationEnd);
+                levelDisplay.classList.remove('level-in');
+            };
+            levelDisplay.addEventListener('animationend', onInAnimationEnd, { once: true });
+        };
+        levelDisplay.addEventListener('animationend', onOutAnimationEnd, { once: true });
     }
 
     difficultyBtns.forEach(btn => {
@@ -339,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     restartBtn.addEventListener('click', () => {
         gameOverMenu.classList.add('hidden');
+        levelDisplay.classList.add('hidden');
         startMenu.classList.remove('hidden');
         // Reset to the initial preview state for the start menu
         currentDifficulty = 'easy'; // Reset to easy for preview
@@ -348,60 +334,30 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeCanvas(); // This will call draw()
     });
 
-    shareReplayBtn.addEventListener('click', () => {
-        // Open the replay viewer with the "Post to Comments" button visible
-        openReplayViewer(true);
-    });
-
-    postReplayCommentBtn.addEventListener('click', shareReplayAction);
-
-    function openReplayViewer(showPostButton = false) {
+    replayBtn.addEventListener('click', async () => {
         gameOverMenu.classList.add('hidden');
         replayContainer.classList.remove('hidden');
-
-        if (showPostButton) {
-            postReplayCommentBtn.classList.remove('hidden');
-        } else {
-            postReplayCommentBtn.classList.add('hidden');
+        
+        try {
+            const currentUser = await window.websim.getCurrentUser();
+            replayConfig.currentUser = currentUser;
+        } catch (error) {
+            console.error("Could not get current user for replay:", error);
+            replayConfig.currentUser = null;
         }
-        
-        // Use a promise-like pattern to ensure user is fetched before rendering
-        const getUserAndShow = async () => {
-            try {
-                const currentUser = await window.websim.getCurrentUser();
-                replayConfig.currentUser = currentUser;
-            } catch (error) {
-                console.error("Could not get current user for replay:", error);
-                replayConfig.currentUser = null;
-            } finally {
-                const event = new CustomEvent('showReplay', {
-                    detail: {
-                        frames: replayFrames,
-                        config: replayConfig
-                    }
-                });
-                window.dispatchEvent(event);
-            }
-        };
-        
-        getUserAndShow();
-    }
 
-    replayBtn.addEventListener('click', () => {
-        // Open the replay viewer for watching only
-        openReplayViewer(false);
+        const event = new CustomEvent('showReplay', {
+            detail: {
+                frames: replayFrames,
+                config: replayConfig
+            }
+        });
+        window.dispatchEvent(event);
     });
 
     closeReplayBtn.addEventListener('click', () => {
         replayContainer.classList.add('hidden');
         gameOverMenu.classList.remove('hidden');
-        // Reset post button state
-        postReplayCommentBtn.classList.add('hidden');
-        postReplayCommentBtn.disabled = false;
-        postReplayCommentBtn.style.opacity = '1';
-        postReplayCommentBtn.style.cursor = 'pointer';
-        postReplayCommentBtn.textContent = 'Post to Comments';
-
         const event = new CustomEvent('hideReplay');
         window.dispatchEvent(event);
     });
