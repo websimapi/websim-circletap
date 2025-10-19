@@ -284,52 +284,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     shareReplayBtn.addEventListener('click', async () => {
-        shareReplayBtn.disabled = true;
-        shareReplayBtn.style.opacity = '0.5';
-        shareReplayBtn.style.cursor = 'wait';
-
+        // Just show the replay player - it has a download button that handles comment integration
+        gameOverMenu.classList.add('hidden');
+        replayContainer.classList.remove('hidden');
+        
         try {
-            // Lazy-load composition only when needed
-            const { ReplayComposition } = await import('./composition.jsx');
-
-            try {
-                const currentUser = await window.websim.getCurrentUser();
-                replayConfig.currentUser = currentUser;
-            } catch (error) {
-                console.warn("Could not get current user, proceeding without it.");
-                replayConfig.currentUser = null;
-            }
-            
-            const replayData = { frames: replayFrames, config: replayConfig };
-            const durationInSeconds = (replayData.frames[replayData.frames.length - 1].timestamp - replayData.frames[0].timestamp) / 1000;
-            const durationInFrames = Math.ceil(durationInSeconds * 30) + 90; // Add 3 seconds for end screen
-
-            if (typeof window.websim.renderAndPost !== 'function') {
-                throw new Error("The 'renderAndPost' feature is not available. Please try updating your environment.");
-            }
-
-            // Use the integrated websim function to handle rendering and posting
-            await window.websim.renderAndPost({
-                component: ReplayComposition,
-                durationInFrames: durationInFrames,
-                fps: 30,
-                compositionWidth: 540,
-                compositionHeight: 960,
-                inputProps: { replayData },
-                comment: {
-                    content: `Check out my score of ${score}!`,
-                },
-                fileName: 'circle-tap-replay.mp4'
-            });
-
+            const currentUser = await window.websim.getCurrentUser();
+            replayConfig.currentUser = currentUser;
         } catch (error) {
-            console.error("Failed to share replay:", error);
-            alert(`Sorry, there was an error sharing your replay. ${error.message}`);
-        } finally {
-            shareReplayBtn.disabled = false;
-            shareReplayBtn.style.opacity = '1';
-            shareReplayBtn.style.cursor = 'pointer';
+            console.error("Could not get current user for replay:", error);
+            replayConfig.currentUser = null;
         }
+
+        const event = new CustomEvent('showReplay', {
+            detail: {
+                frames: replayFrames,
+                config: replayConfig
+            }
+        });
+        window.dispatchEvent(event);
     });
 
     replayBtn.addEventListener('click', async () => {
