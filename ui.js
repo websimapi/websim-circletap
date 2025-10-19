@@ -38,8 +38,18 @@ export class UIController {
         this.elements.scoreEl.textContent = score;
     }
 
-    updateLevel(level) {
+    updateLevel(level, isInitial = false) {
         const levelDisplay = this.elements.levelDisplay;
+        
+        if (isInitial) {
+            levelDisplay.textContent = level;
+            levelDisplay.classList.remove('level-in', 'level-out');
+            setTimeout(() => {
+                levelDisplay.classList.add('level-in');
+            }, 100); // Small delay to ensure animation triggers on restart
+            return;
+        }
+
         levelDisplay.classList.remove('level-in');
         levelDisplay.classList.add('level-out');
 
@@ -87,4 +97,3 @@ export class UIController {
         this.elements.submitScoreBtn.textContent = text;
     }
 }
-

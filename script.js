@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Set up game callbacks
     game.onScoreUpdate = (score) => ui.updateScore(score);
-    game.onLevelUp = (level) => ui.updateLevel(level);
+    game.onLevelUp = (level, isInitial) => ui.updateLevel(level, isInitial);
     game.onGameOver = (gameData) => {
         ui.showGameOverMenu(gameData.score);
     };

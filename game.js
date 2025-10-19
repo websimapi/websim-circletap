@@ -33,7 +33,7 @@ export class Game {
         this.currentDifficulty = 'easy';
         this.replayFrames = [];
         this.replayConfig = {};
-        this.level = 1;
+        this.level = 0;
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = 1;
         this.currentColorHsl = hsl(getHslStringForLevel(1));
@@ -81,7 +81,7 @@ export class Game {
         this.angle = -Math.PI / 2;
         this.direction = 1;
 
-        this.level = 1;
+        this.level = 0;
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = 1;
         
@@ -103,6 +103,7 @@ export class Game {
         this.animationFrameId = requestAnimationFrame((t) => this.gameLoop(t));
 
         if (this.onScoreUpdate) this.onScoreUpdate(this.score);
+        if (this.onLevelUp) this.onLevelUp(this.level, true); // Pass true to indicate initial level
     }
 
     gameOver() {
@@ -214,6 +215,8 @@ export class Game {
             this.tapsThisLevel++;
             if (this.tapsThisLevel >= this.tapsForNextLevel) {
                 this.levelUp();
+            } else if (this.level === 0) { // First tap of the game
+                this.levelUp();
             }
 
             this.direction *= -1;
@@ -247,7 +250,7 @@ export class Game {
     }
 
     reset() {
-        this.level = 1;
+        this.level = 0;
         this.currentColorHsl = hsl(getHslStringForLevel(1));
         this.targetSize = difficulties[this.currentDifficulty].size;
         this.targetStartAngle = Math.PI / 4;
