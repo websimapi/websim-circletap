@@ -142,6 +142,7 @@ button:active {
     cursor: pointer;
     z-index: 101;
     padding: 0 10px;
+    line-height: 1; /* Better vertical alignment */
 }
 
 .hidden {
