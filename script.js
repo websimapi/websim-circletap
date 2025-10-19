@@ -36,9 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDifficulty = 'easy';
 
     const difficulties = {
-        easy: { speed: 1.2 * Math.PI, size: 0.3, trackWidthFactor: 0.12 }, 
-        medium: { speed: 1.6 * Math.PI, size: 0.175, trackWidthFactor: 0.07 },
-        hard: { speed: 2.0 * Math.PI, size: 0.0875, trackWidthFactor: 0.035 }
+        easy: { speed: 1.2 * Math.PI, size: 0.4, trackWidthFactor: 0.12 }, 
+        medium: { speed: 1.5 * Math.PI, size: 0.25, trackWidthFactor: 0.07 },
+        hard: { speed: 1.8 * Math.PI, size: 0.15, trackWidthFactor: 0.035 }
     };
 
     // Audio
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             score++;
             scoreEl.textContent = score;
             direction *= -1; // Reverse direction
-            speed *= 1.05; // Slightly increase speed
+            speed *= 1.04; // Slightly increase speed
             generateNewTarget();
         } else {
             gameOver();
