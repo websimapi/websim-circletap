@@ -17,10 +17,14 @@
                 <h1>Circle Tap</h1>
                 <p>Tap when the line is in the green zone.</p>
                 <div id="difficulty-selection">
-                    <button class="difficulty-btn" data-difficulty="easy">Easy</button>
-                    <button class="difficulty-btn" data-difficulty="medium" style="--btn-color: #e94560;">Medium</button>
-                    <button class="difficulty-btn" data-difficulty="hard" style="--btn-color: #e94560;">Hard</button>
-                    <button id="leaderboard-btn">Leaderboard</button>
+                    <button class="difficulty-btn menu-btn" data-difficulty="easy">Easy</button>
+                    <button class="difficulty-btn menu-btn" data-difficulty="medium" style="--btn-color: #e94560;">Medium</button>
+                    <button class="difficulty-btn menu-btn" data-difficulty="hard" style="--btn-color: #e94560;">Hard</button>
+                    <button id="leaderboard-btn" class="menu-btn" aria-label="Leaderboard">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 13h3v7H3v-7zm5-2h3v9H8v-9zm5-6h3v15h-3V5z"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -28,9 +32,9 @@
                 <h2>Game Over</h2>
                 <p>Final Score: <span id="final-score">0</span></p>
                 <div id="game-over-buttons">
-                  <button id="submit-score-btn">Submit Score</button>
-                  <button id="replay-btn">Watch Replay</button>
-                  <button id="restart-btn">Try Again</button>
+                  <button id="submit-score-btn" class="menu-btn">To Submit</button>
+                  <button id="replay-btn" class="menu-btn">Instant Replay</button>
+                  <button id="restart-btn" class="menu-btn">Retry</button>
                 </div>
             </div>
         </div>

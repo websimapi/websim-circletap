@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             () => {
                 ui.setSubmitButtonState('disabled', 'Error!');
                 setTimeout(() => {
-                    ui.setSubmitButtonState('enabled', 'Submit Score');
+                    ui.setSubmitButtonState('enabled', 'To Submit');
                 }, 2000);
             }
         );

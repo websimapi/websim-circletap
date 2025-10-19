@@ -27,7 +27,7 @@ export class UIController {
         this.elements.levelDisplay.classList.remove('level-in', 'level-out');
         this.elements.finalScoreEl.textContent = score;
         this.elements.submitScoreBtn.disabled = false;
-        this.elements.submitScoreBtn.textContent = 'Submit Score';
+        this.elements.submitScoreBtn.textContent = 'To Submit';
         
         setTimeout(() => {
             this.elements.levelDisplay.classList.add('hidden');

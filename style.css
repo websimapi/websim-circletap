@@ -123,17 +123,33 @@ html, body {
 
 #game-over-buttons {
     display: flex;
+    flex-direction: row;
     gap: 8px;
-    margin-top: 3px;
-    flex-wrap: wrap;
+    margin-top: 8px;
     justify-content: center;
+    width: 100%;
+    align-items: stretch;
+}
+
+#leaderboard-btn {
+    flex-grow: 0; /* Let it size to its content/padding */
+    padding-left: 12px;
+    padding-right: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#leaderboard-btn svg {
+    height: 1.2em; /* Size relative to button font-size */
 }
 
 #difficulty-selection {
     display: flex;
     gap: 8px;
-    flex-wrap: wrap;
+    /* flex-wrap: wrap; */ /* Removed */
     justify-content: center;
+    width: 100%;
 }
 
 button {
@@ -147,6 +163,21 @@ button {
     transition: background-color 0.2s, transform 0.1s;
     pointer-events: all;
     font-weight: bold;
+}
+
+.menu-btn {
+    flex-grow: 1;
+    flex-shrink: 1;
+    /* flex-basis: 0; */ /* Removed to allow content-based sizing */
+    padding: 10px 8px; /* Adjusted padding */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* min-width: 0; */ /* Removed to allow content-based sizing */
+}
+
+.menu-btn {
+    font-size: clamp(0.65rem, 2.8vw, 0.9rem);
 }
 
 button:disabled {
