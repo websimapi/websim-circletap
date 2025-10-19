@@ -128,6 +128,7 @@ const ReplayComposition = ({ replayData }) => {
   const startTime = frames[0].timestamp;
   const gameEndTime = frames[frames.length - 1].timestamp;
   const gameEndFrame = Math.ceil((gameEndTime - startTime) / 1e3 * 30);
+  const didGameEndInFailure = !frames[frames.length - 1].success;
   const currentTimestamp = startTime + frame / 30 * 1e3;
   let frameIndex;
   if (frame < gameEndFrame) {
@@ -138,7 +139,7 @@ const ReplayComposition = ({ replayData }) => {
   }
   const currentFrameData = frames[frameIndex];
   const score = currentFrameData.score;
-  const isGameOver = frameIndex === frames.length - 1 && !currentFrameData.success;
+  const isGameOver = frameIndex === frames.length - 1 && didGameEndInFailure;
   const showEndScreen = frame >= gameEndFrame;
   return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: "#1a1a2e" }, children: [
     !showEndScreen && /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { top: "5vh", justifyContent: "flex-start", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "clamp(1.5rem, 5vw, 2.5rem)", fontWeight: "bold", color: config.colors.fail.trim(), fontFamily: "Arial, sans-serif" }, children: [
@@ -146,56 +147,56 @@ const ReplayComposition = ({ replayData }) => {
       score
     ] }, void 0, true, {
       fileName: "<stdin>",
-      lineNumber: 117,
+      lineNumber: 121,
       columnNumber: 21
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 116,
+      lineNumber: 120,
       columnNumber: 17
     }),
     /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { justifyContent: "center", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { width: "90vmin", height: "90vmin" }, children: /* @__PURE__ */ jsxDEV(GameCanvas, { frameData: currentFrameData, config }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 126,
+      lineNumber: 130,
       columnNumber: 21
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 125,
+      lineNumber: 129,
       columnNumber: 17
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 124,
+      lineNumber: 128,
       columnNumber: 13
     }),
     showEndScreen && /* @__PURE__ */ jsxDEV(EndScreenOverlay, { score, user: currentUser, isGameOver }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 131,
+      lineNumber: 135,
       columnNumber: 32
     }),
     /* @__PURE__ */ jsxDEV(Audio, { src: "/start_sound.mp3", startFrom: 0, endAt: 60 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 134,
+      lineNumber: 138,
       columnNumber: 13
     }),
     frames.map((f, i) => {
       if (!f.success) return null;
       const frameForAudio = Math.round((f.timestamp - startTime) / 1e3 * 30);
-      if (frameForAudio < gameEndFrame) {
+      if (frameForAudio < gameEndFrame - 15) {
         return /* @__PURE__ */ jsxDEV(Audio, { src: "/success.mp3", startFrom: frameForAudio, endAt: frameForAudio + 30 }, `success-${i}`, false, {
           fileName: "<stdin>",
-          lineNumber: 141,
+          lineNumber: 145,
           columnNumber: 27
         });
       }
       return null;
     }),
-    isGameOver && /* @__PURE__ */ jsxDEV(Audio, { src: "/fail.mp3", startFrom: gameEndFrame - 1 }, void 0, false, {
+    didGameEndInFailure && /* @__PURE__ */ jsxDEV(Audio, { src: "/fail.mp3", startFrom: gameEndFrame - 1 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 147,
+      lineNumber: 152,
       columnNumber: 17
     })
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 113,
+    lineNumber: 117,
     columnNumber: 9
   });
 };
