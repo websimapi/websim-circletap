@@ -151,17 +151,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTap() {
         if (gameState !== 'playing') return;
 
-        let normalizedAngle = angle;
-        let normalizedTargetStart = targetAngle;
+        // The angle of the line is determined by its leading edge in the direction of rotation.
+        // We can think of the line having a small angular width. Let's approximate the check
+        // against the center of the rotating line for simplicity and fairness.
+        const lineAngle = angle;
         
-        // Calculate the difference between the line's angle and the start of the target.
-        // We normalize this difference to be within the [0, 2*PI) range.
-        let diff = (normalizedAngle - normalizedTargetStart);
-        diff = (diff % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        // Normalize all angles to be in the [0, 2*PI) range to handle wrap-around cases consistently.
+        const normalizedLineAngle = (lineAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        const normalizedTargetStart = (targetAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
 
-        // The tap is in the zone if the calculated difference is less than the target's size.
-        // This handles all cases, including when the target zone wraps around the circle's zero-angle point.
-        const inZone = diff < targetSize;
+        // Calculate the end of the target zone
+        const targetEnd = normalizedTargetStart + targetSize;
+
+        let inZone = false;
+        // Check if the target zone wraps around the 0-radian point (e.g., starts at 340 degrees and ends at 20 degrees).
+        if (targetEnd > Math.PI * 2) {
+            // It wraps. Check if the line is in the first part (e.g., 340 to 360) OR the second part (e.g., 0 to 20).
+            const endAngleInFirstLap = targetEnd % (Math.PI * 2);
+            inZone = (normalizedLineAngle >= normalizedTargetStart && normalizedLineAngle < Math.PI * 2) || (normalizedLineAngle >= 0 && normalizedLineAngle < endAngleInFirstLap);
+        } else {
+            // It doesn't wrap. A simple check to see if the line angle is between the start and end of the target.
+            inZone = normalizedLineAngle >= normalizedTargetStart && normalizedLineAngle < targetEnd;
+        }
 
         if (inZone) {
             if (successSound) successSound();
