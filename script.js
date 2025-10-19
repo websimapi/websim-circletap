@@ -141,8 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameState !== 'playing') return;
 
         angle += speed * direction;
-        if (angle > Math.PI * 2) angle -= Math.PI * 2;
-        if (angle < 0) angle += Math.PI * 2;
+        // Normalize angle to be always within [0, 2*PI)
+        angle = (angle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
 
         draw();
         requestAnimationFrame(gameLoop);
@@ -151,16 +151,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTap() {
         if (gameState !== 'playing') return;
 
-        let normalizedAngle = angle % (Math.PI * 2);
-        let normalizedTarget = targetAngle % (Math.PI * 2);
+        let normalizedAngle = angle;
+        let normalizedTargetStart = targetAngle;
         
-        let inZone = false;
-        if (normalizedTarget + targetSize > Math.PI * 2) {
-             // Target wraps around 0
-            inZone = (normalizedAngle >= normalizedTarget && normalizedAngle < Math.PI * 2) || (normalizedAngle >= 0 && normalizedAngle < (normalizedTarget + targetSize) % (Math.PI * 2));
-        } else {
-            inZone = normalizedAngle >= normalizedTarget && normalizedAngle < normalizedTarget + targetSize;
-        }
+        // Calculate the difference between the line's angle and the start of the target.
+        // We normalize this difference to be within the [0, 2*PI) range.
+        let diff = (normalizedAngle - normalizedTargetStart);
+        diff = (diff % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+
+        // The tap is in the zone if the calculated difference is less than the target's size.
+        // This handles all cases, including when the target zone wraps around the circle's zero-angle point.
+        const inZone = diff < targetSize;
 
         if (inZone) {
             if (successSound) successSound();
@@ -201,4 +202,3 @@ document.addEventListener('DOMContentLoaded', () => {
     initAudio();
     draw(); // Draw initial state for start menu
 });
-
