@@ -36,9 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDifficulty = 'easy';
 
     const difficulties = {
-        easy: { speed: 1.5 * Math.PI, size: Math.PI / 2.5, trackWidthFactor: 0.12 }, // larger gap, smaller target
-        medium: { speed: 2.5 * Math.PI, size: Math.PI / 3.5, trackWidthFactor: 0.07 }, // slightly larger gap, smaller target
-        hard: { speed: 3.5 * Math.PI, size: Math.PI / 5, trackWidthFactor: 0.035 } // same gap, smaller target
+        easy: { speed: 1.2 * Math.PI, size: Math.PI / 3, trackWidthFactor: 0.12 }, // Slower, smaller target
+        medium: { speed: 2.0 * Math.PI, size: Math.PI / 4.5, trackWidthFactor: 0.07 }, // Slower, smaller target
+        hard: { speed: 2.8 * Math.PI, size: Math.PI / 6, trackWidthFactor: 0.035 } // Slower, smaller target
     };
 
     // Audio
