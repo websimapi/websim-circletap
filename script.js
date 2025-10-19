@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareReplayBtn = document.getElementById('share-replay-btn');
     const replayContainer = document.getElementById('replay-container');
     const closeReplayBtn = document.getElementById('close-replay-btn');
+    const postReplayCommentBtn = document.getElementById('post-replay-comment-btn');
 
     // CSS Color variables
     const computedStyles = getComputedStyle(document.documentElement);
@@ -268,6 +269,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function shareReplayAction() {
+        const btn = postReplayCommentBtn.classList.contains('hidden') ? shareReplayBtn : postReplayCommentBtn;
+
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'wait';
+
+        try {
+            const { renderVideo } = await import('https://esm.websim.com/@websim/remotion/renderer');
+            const { ReplayComposition } = await import('./composition.jsx');
+
+            // Ensure user info is fresh for rendering
+            try {
+                const currentUser = await window.websim.getCurrentUser();
+                replayConfig.currentUser = currentUser;
+            } catch (error) {
+                console.warn("Could not get current user, proceeding without it.");
+                replayConfig.currentUser = null;
+            }
+            
+            const replayData = { frames: replayFrames, config: replayConfig };
+            const durationInSeconds = (replayData.frames[replayData.frames.length - 1].timestamp - replayData.frames[0].timestamp) / 1000;
+            const durationInFrames = Math.ceil(durationInSeconds * 30) + 90; // Add 3 seconds for end screen
+
+            const videoBlob = await renderVideo({
+                component: ReplayComposition,
+                durationInFrames: durationInFrames,
+                fps: 30,
+                compositionWidth: 540,
+                compositionHeight: 960,
+                inputProps: { replayData },
+                onProgress: ({ progress }) => {
+                    btn.textContent = `${Math.round(progress * 100)}%`;
+                },
+            });
+
+            const videoFile = new File([videoBlob], "replay.mp4", { type: "video/mp4" });
+            const videoUrl = await window.websim.upload(videoFile);
+
+            await window.websim.postComment({
+                content: `Check out my score of ${score}!`,
+                images: [videoUrl], // The 'images' field can accept video URLs
+            });
+
+            // Close the replay view if open
+            if (!replayContainer.classList.contains('hidden')) {
+                closeReplayBtn.click();
+            }
+
+        } catch (error) {
+            console.error("Failed to share replay:", error);
+            alert("Sorry, there was an error sharing your replay.");
+        } finally {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            if (btn === shareReplayBtn) {
+                 btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>`;
+            } else {
+                btn.textContent = 'Post to Comments';
+            }
+        }
+    }
+
     difficultyBtns.forEach(btn => {
         btn.addEventListener('click', () => startGame(btn.dataset.difficulty));
     });
@@ -283,52 +348,60 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeCanvas(); // This will call draw()
     });
 
-    shareReplayBtn.addEventListener('click', async () => {
-        // Just show the replay player - it has a download button that handles comment integration
-        gameOverMenu.classList.add('hidden');
-        replayContainer.classList.remove('hidden');
-        
-        try {
-            const currentUser = await window.websim.getCurrentUser();
-            replayConfig.currentUser = currentUser;
-        } catch (error) {
-            console.error("Could not get current user for replay:", error);
-            replayConfig.currentUser = null;
-        }
-
-        const event = new CustomEvent('showReplay', {
-            detail: {
-                frames: replayFrames,
-                config: replayConfig
-            }
-        });
-        window.dispatchEvent(event);
+    shareReplayBtn.addEventListener('click', () => {
+        // Open the replay viewer with the "Post to Comments" button visible
+        openReplayViewer(true);
     });
 
-    replayBtn.addEventListener('click', async () => {
+    postReplayCommentBtn.addEventListener('click', shareReplayAction);
+
+    function openReplayViewer(showPostButton = false) {
         gameOverMenu.classList.add('hidden');
         replayContainer.classList.remove('hidden');
-        
-        try {
-            const currentUser = await window.websim.getCurrentUser();
-            replayConfig.currentUser = currentUser;
-        } catch (error) {
-            console.error("Could not get current user for replay:", error);
-            replayConfig.currentUser = null;
-        }
 
-        const event = new CustomEvent('showReplay', {
-            detail: {
-                frames: replayFrames,
-                config: replayConfig
+        if (showPostButton) {
+            postReplayCommentBtn.classList.remove('hidden');
+        } else {
+            postReplayCommentBtn.classList.add('hidden');
+        }
+        
+        // Use a promise-like pattern to ensure user is fetched before rendering
+        const getUserAndShow = async () => {
+            try {
+                const currentUser = await window.websim.getCurrentUser();
+                replayConfig.currentUser = currentUser;
+            } catch (error) {
+                console.error("Could not get current user for replay:", error);
+                replayConfig.currentUser = null;
+            } finally {
+                const event = new CustomEvent('showReplay', {
+                    detail: {
+                        frames: replayFrames,
+                        config: replayConfig
+                    }
+                });
+                window.dispatchEvent(event);
             }
-        });
-        window.dispatchEvent(event);
+        };
+        
+        getUserAndShow();
+    }
+
+    replayBtn.addEventListener('click', () => {
+        // Open the replay viewer for watching only
+        openReplayViewer(false);
     });
 
     closeReplayBtn.addEventListener('click', () => {
         replayContainer.classList.add('hidden');
         gameOverMenu.classList.remove('hidden');
+        // Reset post button state
+        postReplayCommentBtn.classList.add('hidden');
+        postReplayCommentBtn.disabled = false;
+        postReplayCommentBtn.style.opacity = '1';
+        postReplayCommentBtn.style.cursor = 'pointer';
+        postReplayCommentBtn.textContent = 'Post to Comments';
+
         const event = new CustomEvent('hideReplay');
         window.dispatchEvent(event);
     });
