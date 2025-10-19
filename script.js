@@ -314,6 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 onProgress: ({ progress }) => {
                     shareReplayBtn.innerHTML = `${Math.round(progress * 100)}%`;
                 },
+                numberOfSharedAudioTags: 50,
             });
 
             const videoFile = new File([videoBlob], "replay.mp4", { type: "video/mp4" });
