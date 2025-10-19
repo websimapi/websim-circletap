@@ -129,10 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreDisplay.classList.add('hidden');
         gameOverMenu.classList.remove('hidden');
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        // After game over, show a preview for the next round
-        targetSize = difficulties.easy.size; // Show an easy target as preview
-        generateNewTarget();
-        draw();
+        // Do not generate a new target, so the user can see where they missed.
+        // The last drawn frame from gameLoop will remain visible.
     }
 
     function draw() {
@@ -226,7 +224,11 @@ document.addEventListener('DOMContentLoaded', () => {
     restartBtn.addEventListener('click', () => {
         gameOverMenu.classList.add('hidden');
         startMenu.classList.remove('hidden');
-        draw(); // Redraw initial state
+        // Reset to the initial preview state for the start menu
+        targetSize = difficulties.easy.size;
+        targetStartAngle = Math.PI / 4;
+        angle = -Math.PI / 2;
+        draw();
     });
 
     const tapHandler = (e) => {
