@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const finalScoreEl = document.getElementById('final-score');
     const restartBtn = document.getElementById('restart-btn');
     const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+    const replayBtn = document.getElementById('replay-btn');
+    const replayContainer = document.getElementById('replay-container');
+    const closeReplayBtn = document.getElementById('close-replay-btn');
 
     // CSS Color variables
     const computedStyles = getComputedStyle(document.documentElement);
@@ -34,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastFrameTime = 0;
     let animationFrameId;
     let currentDifficulty = 'easy';
+    let replayFrames = [];
+    let replayConfig = {};
 
     const difficulties = {
         easy: { speed: 1.2 * Math.PI, size: 0.4, trackWidthFactor: 0.12 }, 
@@ -121,6 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverMenu.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
 
+        replayFrames = [];
+        replayConfig = {
+            difficulty: currentDifficulty,
+            difficulties,
+            colors,
+        };
+
         lastFrameTime = performance.now();
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
         animationFrameId = requestAnimationFrame(gameLoop);
@@ -133,7 +145,17 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreDisplay.classList.add('hidden');
         gameOverMenu.classList.remove('hidden');
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        // Do not generate a new target, so the user can see where they missed.
+        
+        // Add the final frame to the replay
+        replayFrames.push({
+            angle,
+            targetStartAngle,
+            targetSize,
+            score,
+            success: false,
+            timestamp: performance.now(),
+        });
+
         // The last drawn frame from gameLoop will remain visible.
     }
 
@@ -183,6 +205,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         angle += speed * direction * deltaTime;
         
+        replayFrames.push({
+            angle,
+            targetStartAngle,
+            targetSize,
+            score,
+            timestamp: currentTime,
+        });
+
         draw();
         animationFrameId = requestAnimationFrame(gameLoop);
     }
@@ -220,6 +250,17 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreEl.textContent = score;
             direction *= -1; // Reverse direction
             speed *= 1.04; // Slightly increase speed
+
+            // Record successful tap
+            const lastFrame = replayFrames[replayFrames.length - 1];
+            if (lastFrame) {
+                lastFrame.success = true;
+                lastFrame.newTarget = {
+                    start: targetStartAngle,
+                    size: difficulties[currentDifficulty].size
+                };
+            }
+
             generateNewTarget();
         } else {
             gameOver();
@@ -239,6 +280,25 @@ document.addEventListener('DOMContentLoaded', () => {
         targetStartAngle = Math.PI / 4;
         angle = -Math.PI / 2;
         resizeCanvas(); // This will call draw()
+    });
+
+    replayBtn.addEventListener('click', () => {
+        gameOverMenu.classList.add('hidden');
+        replayContainer.classList.remove('hidden');
+        const event = new CustomEvent('showReplay', {
+            detail: {
+                frames: replayFrames,
+                config: replayConfig
+            }
+        });
+        window.dispatchEvent(event);
+    });
+
+    closeReplayBtn.addEventListener('click', () => {
+        replayContainer.classList.add('hidden');
+        gameOverMenu.classList.remove('hidden');
+        const event = new CustomEvent('hideReplay');
+        window.dispatchEvent(event);
     });
 
     const tapHandler = (e) => {
