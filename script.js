@@ -36,9 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDifficulty = 'easy';
 
     const difficulties = {
-        easy: { speed: 1.2 * Math.PI, size: Math.PI / 3, trackWidthFactor: 0.12 }, // Slower, smaller target
-        medium: { speed: 2.0 * Math.PI, size: Math.PI / 4.5, trackWidthFactor: 0.07 }, // Slower, smaller target
-        hard: { speed: 2.8 * Math.PI, size: Math.PI / 6, trackWidthFactor: 0.035 } // Slower, smaller target
+        easy: { speed: 1.2 * Math.PI, size: 0.3, trackWidthFactor: 0.12 }, 
+        medium: { speed: 2.0 * Math.PI, size: 0.175, trackWidthFactor: 0.07 },
+        hard: { speed: 2.8 * Math.PI, size: 0.0875, trackWidthFactor: 0.035 }
     };
 
     // Audio
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.beginPath();
             ctx.arc(0, 0, radius, targetStartAngle, targetStartAngle + targetSize);
             ctx.strokeStyle = colors.success;
-            ctx.lineWidth = lineWidth;
+            ctx.lineWidth = lineWidth * 0.95; // Make target slightly thinner than track for a better look
             ctx.lineCap = 'round'; // Use round ends for the target zone
             ctx.stroke();
         }
