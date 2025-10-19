@@ -314,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 onProgress: ({ progress }) => {
                     shareReplayBtn.innerHTML = `${Math.round(progress * 100)}%`;
                 },
-                numberOfSharedAudioTags: 50,
             });
 
             const videoFile = new File([videoBlob], "replay.mp4", { type: "video/mp4" });
@@ -322,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             await window.websim.postComment({
                 content: `Check out my score of ${score}!`,
-                images: [videoUrl], // The 'images' field can accept video URLs
+                video_url: videoUrl,
             });
 
         } catch (error) {
