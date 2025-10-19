@@ -36,9 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDifficulty = 'easy';
 
     const difficulties = {
-        easy: { speed: 1.5 * Math.PI, size: Math.PI / 2, trackWidthFactor: 0.08 }, // Speed in radians per second
-        medium: { speed: 2.5 * Math.PI, size: Math.PI / 3, trackWidthFactor: 0.05 },
-        hard: { speed: 3.5 * Math.PI, size: Math.PI / 4, trackWidthFactor: 0.035 }
+        easy: { speed: 1.5 * Math.PI, size: Math.PI / 2.5, trackWidthFactor: 0.12 }, // larger gap, smaller target
+        medium: { speed: 2.5 * Math.PI, size: Math.PI / 3.5, trackWidthFactor: 0.07 }, // slightly larger gap, smaller target
+        hard: { speed: 3.5 * Math.PI, size: Math.PI / 5, trackWidthFactor: 0.035 } // same gap, smaller target
     };
 
     // Audio
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         radius = size * 0.4;
         lineWidth = size * difficulties[currentDifficulty].trackWidthFactor;
-        ctx.lineCap = 'butt';
+        // ctx.lineCap is now set in draw() for specific elements
         
         // Redraw if game is not active
         if (gameState !== 'playing') {
@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.strokeStyle = colors.secondary;
         ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'butt'; // Use flat ends for the track circle
         ctx.stroke();
 
         // Draw target zone only if size is positive
@@ -155,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.arc(0, 0, radius, targetStartAngle, targetStartAngle + targetSize);
             ctx.strokeStyle = colors.success;
             ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round'; // Use round ends for the target zone
             ctx.stroke();
         }
 
@@ -167,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineTo(radius + lineWidth / 2, 0);
         ctx.strokeStyle = colors.fail;
         ctx.lineWidth = lineWidth / 2.5;
+        ctx.lineCap = 'butt'; // Use flat ends for the rotating line
         ctx.stroke();
         
         ctx.restore();
