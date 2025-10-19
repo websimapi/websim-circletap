@@ -1,9 +1,8 @@
-import confetti from 'canvas-confetti';
-
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
 
+    // UI Elements
     const scoreDisplay = document.getElementById('score-display');
     const scoreEl = document.getElementById('score');
     const startMenu = document.getElementById('start-menu');
@@ -12,11 +11,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartBtn = document.getElementById('restart-btn');
     const difficultyBtns = document.querySelectorAll('.difficulty-btn');
 
+    // Canvas/Drawing state
     let devicePixelRatio = window.devicePixelRatio || 1;
     let size, radius, lineWidth;
 
+    // Game state
+    let gameState = 'start'; // 'start', 'playing', 'gameover'
+    let score = 0;
+    let angle = -Math.PI / 2; // Start at the top
+    let direction = 1;
+    let speed = 0;
+    let targetStartAngle = 0;
+    let targetSize = 0;
+    let lastFrameTime = 0;
+    let animationFrameId;
+
+    const difficulties = {
+        easy: { speed: 1.5 * Math.PI, size: Math.PI / 2 }, // Speed in radians per second
+        medium: { speed: 2.5 * Math.PI, size: Math.PI / 3 },
+        hard: { speed: 3.5 * Math.PI, size: Math.PI / 4 }
+    };
+
+    // Audio
+    let audioCtx;
+    let successSound, failSound, startSound;
+
     function resizeCanvas() {
-        const containerSize = Math.min(canvas.parentElement.offsetWidth, canvas.parentElement.offsetHeight);
+        const containerSize = Math.min(canvas.parentElement.offsetWidth, canvas.parentElement.offsetHeight) * 0.9;
         canvas.style.width = `${containerSize}px`;
         canvas.style.height = `${containerSize}px`;
 
@@ -27,53 +48,17 @@ document.addEventListener('DOMContentLoaded', () => {
         radius = size * 0.4;
         lineWidth = size * 0.05;
         ctx.lineCap = 'butt';
+        
+        // Redraw if game is not active
+        if (gameState !== 'playing') {
+            draw();
+        }
     }
-
-    let gameState = 'start'; // 'start', 'playing', 'gameover'
-    let score = 0;
-    let angle = Math.PI / 2;
-    let direction = 1;
-    let speed = 0;
     
-    let targetAngle = 0;
-    let targetSize = 0;
-
-    const difficulties = {
-        easy: { speed: 0.02, size: Math.PI / 2 },
-        medium: { speed: 0.035, size: Math.PI / 3 },
-        hard: { speed: 0.05, size: Math.PI / 4 }
-    };
-
-    let successSound, failSound;
-    
-    const myConfetti = confetti.create(null, {
-        resize: true,
-        useWorker: true
-    });
-
-    function playConfetti() {
-        const rect = canvas.getBoundingClientRect();
-        const origin = {
-            x: (rect.left + rect.right) / 2 / window.innerWidth,
-            y: (rect.top + rect.bottom) / 2 / window.innerHeight
-        };
-        myConfetti({
-            particleCount: 50,
-            spread: 90,
-            angle: 270,
-            origin: origin,
-            ticks: 200,
-            gravity: 0.7,
-            scalar: 1.2,
-            colors: ['#4CAF50', '#8BC34A', '#FFFFFF']
-        });
-    }
-
-
     function initAudio() {
-        if (window.AudioContext || window.webkitAudioContext) {
+        if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
+            audioCtx = new AudioContext();
 
             const loadSound = (url) => {
                 return fetch(url)
@@ -81,37 +66,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(buffer => audioCtx.decodeAudioData(buffer));
             };
 
+            const createSoundPlayer = (buffer) => () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.start(0);
+            };
+
             Promise.all([
                 loadSound('success.mp3'),
-                loadSound('fail.mp3')
-            ]).then(([successBuffer, failBuffer]) => {
-                successSound = () => {
-                    const source = audioCtx.createBufferSource();
-                    source.buffer = successBuffer;
-                    source.connect(audioCtx.destination);
-                    source.start(0);
-                };
-                failSound = () => {
-                    const source = audioCtx.createBufferSource();
-                    source.buffer = failBuffer;
-                    source.connect(audioCtx.destination);
-                    source.start(0);
-                };
+                loadSound('fail.mp3'),
+                loadSound('start_sound.mp3')
+            ]).then(([successBuffer, failBuffer, startBuffer]) => {
+                successSound = createSoundPlayer(successBuffer);
+                failSound = createSoundPlayer(failBuffer);
+                startSound = createSoundPlayer(startBuffer);
             }).catch(e => console.error("Error loading audio:", e));
         }
     }
 
     function generateNewTarget() {
-        targetAngle = Math.random() * Math.PI * 2;
+        targetStartAngle = Math.random() * Math.PI * 2;
     }
 
     function startGame(difficulty) {
+        initAudio(); // Initialize audio on first user interaction
+        if (startSound) startSound();
         const settings = difficulties[difficulty];
         speed = settings.speed;
         targetSize = settings.size;
 
         score = 0;
-        angle = Math.PI / 2;
+        angle = -Math.PI / 2; // Reset to top
         direction = 1;
         scoreEl.textContent = score;
 
@@ -122,7 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverMenu.classList.add('hidden');
         scoreDisplay.classList.remove('hidden');
 
-        requestAnimationFrame(gameLoop);
+        lastFrameTime = performance.now();
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(gameLoop);
     }
 
     function gameOver() {
@@ -131,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finalScoreEl.textContent = score;
         scoreDisplay.classList.add('hidden');
         gameOverMenu.classList.remove('hidden');
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
     }
 
     function draw() {
@@ -141,14 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Draw track
         ctx.beginPath();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = '#0f3460';
+        ctx.strokeStyle = 'var(--secondary-color)';
         ctx.lineWidth = lineWidth;
         ctx.stroke();
 
         // Draw target zone
         ctx.beginPath();
-        ctx.arc(0, 0, radius, targetAngle, targetAngle + targetSize);
-        ctx.strokeStyle = '#4CAF50';
+        ctx.arc(0, 0, radius, targetStartAngle, targetStartAngle + targetSize);
+        ctx.strokeStyle = 'var(--success-color)';
         ctx.stroke();
 
         // Draw rotating line
@@ -156,62 +146,58 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(radius + lineWidth / 2, 0);
-        ctx.strokeStyle = '#e94560';
-        ctx.lineWidth = lineWidth / 3;
+        ctx.strokeStyle = 'var(--fail-color)';
+        ctx.lineWidth = lineWidth / 2.5;
         ctx.stroke();
         
         ctx.restore();
     }
 
-    function gameLoop() {
+    function gameLoop(currentTime) {
         if (gameState !== 'playing') return;
 
-        angle += speed * direction;
-        // Normalize angle to be always within [0, 2*PI)
-        angle = (angle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        const deltaTime = (currentTime - lastFrameTime) / 1000; // time in seconds
+        lastFrameTime = currentTime;
 
+        angle += speed * direction * deltaTime;
+        
         draw();
-        requestAnimationFrame(gameLoop);
+        animationFrameId = requestAnimationFrame(gameLoop);
     }
     
-    function normalizeAngle(a) {
+    // This is the new, robust hit detection.
+    function isAngleInArc(angleToCheck, arcStart, arcSize) {
+        // Normalize all angles to be in the [0, 2*PI) range
         const twoPi = Math.PI * 2;
-        return (a % twoPi + twoPi) % twoPi;
+        const normAngle = (angleToCheck % twoPi + twoPi) % twoPi;
+        const normArcStart = (arcStart % twoPi + twoPi) % twoPi;
+        
+        // Calculate the end of the arc
+        const normArcEnd = (normArcStart + arcSize) % twoPi;
+
+        if (normArcStart < normArcEnd) {
+            // Standard case (arc doesn't cross the 0 line)
+            return normAngle >= normArcStart && normAngle <= normArcEnd;
+        } else {
+            // Wrap-around case (e.g., starts at 350deg, ends at 20deg)
+            return normAngle >= normArcStart || normAngle <= normArcEnd;
+        }
     }
 
     function handleTap() {
         if (gameState !== 'playing') return;
         
-        const normAngle = normalizeAngle(angle);
-        const normTargetStart = normalizeAngle(targetAngle);
-        const normTargetEnd = normalizeAngle(targetAngle + targetSize);
+        // This provides a generous tolerance based on the visual width of the line.
+        const angleTolerance = Math.atan2(lineWidth / 2.5, radius);
 
-        // To make the game feel fair, we'll check a small arc around the line's center.
-        // This accounts for the visual width of the line.
-        // A value of 0.05 radians is a small, forgiving amount.
-        const angleTolerance = 0.05; 
-
-        let inZone = false;
-
-        if (normTargetStart <= normTargetEnd) {
-            // Normal case: target doesn't wrap around the circle
-            if (normAngle >= normTargetStart - angleTolerance && normAngle <= normTargetEnd + angleTolerance) {
-                inZone = true;
-            }
-        } else {
-            // Wrap-around case: target crosses the 0-radian point
-            if (normAngle >= normTargetStart - angleTolerance || normAngle <= normTargetEnd + angleTolerance) {
-                inZone = true;
-            }
-        }
+        const inZone = isAngleInArc(angle, targetStartAngle - angleTolerance, targetSize + 2 * angleTolerance);
 
         if (inZone) {
             if (successSound) successSound();
-            playConfetti();
             score++;
             scoreEl.textContent = score;
             direction *= -1; // Reverse direction
-            speed *= 1.03; // Slightly increase speed
+            speed *= 1.05; // Slightly increase speed
             generateNewTarget();
         } else {
             gameOver();
@@ -219,29 +205,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     difficultyBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            startGame(btn.dataset.difficulty);
-        });
+        btn.addEventListener('click', () => startGame(btn.dataset.difficulty));
     });
 
     restartBtn.addEventListener('click', () => {
         gameOverMenu.classList.add('hidden');
         startMenu.classList.remove('hidden');
+        draw(); // Redraw initial state
     });
 
-    // Use touchend for mobile to avoid issues with tap-and-hold
-    window.addEventListener('touchend', handleTap, { passive: false });
-    window.addEventListener('mousedown', (e) => {
-        // Prevent firing on button clicks
+    const tapHandler = (e) => {
+        // Prevent event from firing on UI buttons
         if (e.target.tagName !== 'BUTTON') {
+            e.preventDefault();
             handleTap();
         }
-    });
+    };
+
+    // Use pointer events for better cross-device compatibility
+    window.addEventListener('pointerdown', tapHandler);
 
     window.addEventListener('resize', resizeCanvas);
 
     // Initial setup
     resizeCanvas();
-    initAudio();
     draw(); // Draw initial state for start menu
 });

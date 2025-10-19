@@ -5,6 +5,7 @@
     --accent-color: #e94560;
     --text-color: #dcdcdc;
     --success-color: #4CAF50;
+    --fail-color: #e94560;
 }
 
 * {
@@ -40,6 +41,7 @@ html, body {
     background-color: var(--primary-color);
     border-radius: 50%;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    touch-action: none; /* Prevents double tap zoom */
 }
 
 #ui-container {
