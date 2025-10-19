@@ -182,45 +182,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTap() {
         if (gameState !== 'playing') return;
         
-        // This is a robust geometric collision check that accounts for the visual
-        // thickness of both the line and the target arc.
+        const normAngle = normalizeAngle(angle);
+        const normTargetStart = normalizeAngle(targetAngle);
+        const normTargetEnd = normalizeAngle(targetAngle + targetSize);
 
-        // 1. Calculate the angular half-width of the target arc's stroke
-        const targetAngularHalfWidth = Math.atan2(lineWidth / 2, radius);
-        // 2. Calculate the angular half-width of the rotating line's stroke
-        const lineAngularHalfWidth = Math.atan2((lineWidth / 3) / 2, radius);
+        // To make the game feel fair, we'll check a small arc around the line's center.
+        // This accounts for the visual width of the line.
+        // A value of 0.05 radians is a small, forgiving amount.
+        const angleTolerance = 0.05; 
 
-        // 3. Define the full visual range of the target arc.
-        // It starts at its defined angle minus its half-width and ends at its
-        // end angle plus its half-width.
-        let targetStart = normalizeAngle(targetAngle - targetAngularHalfWidth);
-        let targetEnd = normalizeAngle(targetAngle + targetSize + targetAngularHalfWidth);
-
-        // 4. Define the full visual range of the rotating line.
-        let lineStart = normalizeAngle(angle - lineAngularHalfWidth);
-        let lineEnd = normalizeAngle(angle + lineAngularHalfWidth);
-        
         let inZone = false;
 
-        // 5. Check for overlap. This is tricky because the ranges can wrap around
-        // the 0 -> 2*PI boundary.
-        if (targetStart <= targetEnd) { // Case 1: Target does NOT wrap around
-            // Check if the line overlaps, also considering if the line itself wraps
-            if (lineStart <= lineEnd) { // Line does not wrap
-                inZone = lineStart <= targetEnd && targetStart <= lineEnd;
-            } else { // Line wraps (e.g., starts at 350deg, ends at 10deg)
-                inZone = (lineStart <= targetEnd) || (targetStart <= lineEnd);
+        if (normTargetStart <= normTargetEnd) {
+            // Normal case: target doesn't wrap around the circle
+            if (normAngle >= normTargetStart - angleTolerance && normAngle <= normTargetEnd + angleTolerance) {
+                inZone = true;
             }
-        } else { // Case 2: Target WRAPS around (e.g., starts at 350deg, ends at 20deg)
-            // The target is in two parts: [targetStart, 2*PI] and [0, targetEnd]
-            if (lineStart <= lineEnd) { // Line does not wrap
-                 inZone = (lineStart <= Math.PI * 2 && targetStart <= lineEnd) || (0 <= lineEnd && lineStart <= targetEnd);
-            } else { // Line also wraps
-                // If both wrap, they must overlap.
+        } else {
+            // Wrap-around case: target crosses the 0-radian point
+            if (normAngle >= normTargetStart - angleTolerance || normAngle <= normTargetEnd + angleTolerance) {
                 inZone = true;
             }
         }
-
 
         if (inZone) {
             if (successSound) successSound();
