@@ -11,6 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartBtn = document.getElementById('restart-btn');
     const difficultyBtns = document.querySelectorAll('.difficulty-btn');
 
+    // CSS Color variables
+    const computedStyles = getComputedStyle(document.documentElement);
+    const colors = {
+        secondary: computedStyles.getPropertyValue('--secondary-color'),
+        success: computedStyles.getPropertyValue('--success-color'),
+        fail: computedStyles.getPropertyValue('--fail-color')
+    };
+
     // Canvas/Drawing state
     let devicePixelRatio = window.devicePixelRatio || 1;
     let size, radius, lineWidth;
@@ -121,6 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreDisplay.classList.add('hidden');
         gameOverMenu.classList.remove('hidden');
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        // After game over, show a preview for the next round
+        targetSize = difficulties.easy.size; // Show an easy target as preview
+        generateNewTarget();
+        draw();
     }
 
     function draw() {
@@ -131,22 +143,25 @@ document.addEventListener('DOMContentLoaded', () => {
         // Draw track
         ctx.beginPath();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'var(--secondary-color)';
+        ctx.strokeStyle = colors.secondary;
         ctx.lineWidth = lineWidth;
         ctx.stroke();
 
-        // Draw target zone
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, targetStartAngle, targetStartAngle + targetSize);
-        ctx.strokeStyle = 'var(--success-color)';
-        ctx.stroke();
+        // Draw target zone only if size is positive
+        if (targetSize > 0) {
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, targetStartAngle, targetStartAngle + targetSize);
+            ctx.strokeStyle = colors.success;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
 
         // Draw rotating line
         ctx.rotate(angle);
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(radius + lineWidth / 2, 0);
-        ctx.strokeStyle = 'var(--fail-color)';
+        ctx.strokeStyle = colors.fail;
         ctx.lineWidth = lineWidth / 2.5;
         ctx.stroke();
         
@@ -229,5 +244,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial setup
     resizeCanvas();
+    // Show a preview of the target zone on the start screen
+    targetSize = difficulties.easy.size;
+    targetStartAngle = Math.PI / 4;
     draw(); // Draw initial state for start menu
 });
