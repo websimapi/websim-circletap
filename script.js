@@ -151,21 +151,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTap() {
         if (gameState !== 'playing') return;
 
-        // The line has a visual width, and the target area starts drawing from its center.
-        // To make the game feel fairer, we can add a small tolerance to the check.
-        // This tolerance accounts for the visual overlap of the lines.
-        // A small fraction of the target size works well as a tolerance.
-        const tolerance = targetSize * 0.1; 
+        // The line and the target arc both have a visual width due to ctx.lineWidth.
+        // A successful tap should register if any part of the red line visually overlaps 
+        // with any part of the green target arc.
+        // To achieve this, we calculate the angular half-width of both strokes.
 
-        // Check if the current angle is within the target zone, including the tolerance.
-        // We normalize the difference between the line's angle and the target's start angle
-        // to handle the case where the target zone wraps around the circle (e.g., past 360 degrees).
-        let diff = (angle - targetAngle);
+        // The target is drawn with 'lineWidth'. Its angular half-width is:
+        const targetAngularHalfWidth = (lineWidth / 2) / radius;
+        
+        // The rotating line is drawn with 'lineWidth / 3'. Its angular half-width is:
+        const lineAngularHalfWidth = (lineWidth / 3 / 2) / radius;
+
+        // The total tolerance is the sum of these two half-widths. This represents the
+        // extra angular distance on either side of the target zone where the lines will visually overlap.
+        const totalTolerance = targetAngularHalfWidth + lineAngularHalfWidth;
+
+        // Normalize the difference between the line's angle and the target's start angle
+        // to handle the circle wrapping around from 2*PI to 0.
+        let diff = angle - targetAngle;
         let normalizedDiff = (diff % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
 
-        // The tap is considered 'in the zone' if the normalized difference is within the bounds
-        // of the target size, plus our small tolerance.
-        const inZone = normalizedDiff >= -tolerance && normalizedDiff < (targetSize + tolerance);
+        // The tap is 'in the zone' if the center of the rotating line is within the target arc's
+        // central path, extended by our calculated total tolerance on both ends.
+        const inZone = normalizedDiff >= -totalTolerance && normalizedDiff < (targetSize + totalTolerance);
 
         if (inZone) {
             if (successSound) successSound();
