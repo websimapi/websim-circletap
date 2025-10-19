@@ -282,9 +282,18 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeCanvas(); // This will call draw()
     });
 
-    replayBtn.addEventListener('click', () => {
+    replayBtn.addEventListener('click', async () => {
         gameOverMenu.classList.add('hidden');
         replayContainer.classList.remove('hidden');
+        
+        try {
+            const currentUser = await window.websim.getCurrentUser();
+            replayConfig.currentUser = currentUser;
+        } catch (error) {
+            console.error("Could not get current user for replay:", error);
+            replayConfig.currentUser = null;
+        }
+
         const event = new CustomEvent('showReplay', {
             detail: {
                 frames: replayFrames,

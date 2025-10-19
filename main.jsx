@@ -12,7 +12,7 @@ const renderPlayer = (data) => {
     return;
   }
   const durationInSeconds = (data.frames[data.frames.length - 1].timestamp - data.frames[0].timestamp) / 1e3;
-  const durationInFrames = Math.ceil(durationInSeconds * 30);
+  const durationInFrames = Math.ceil(durationInSeconds * 30) + 90;
   root.render(
     /* @__PURE__ */ jsxDEV(
       Player,

@@ -1,6 +1,6 @@
 import { jsxDEV } from "react/jsx-dev-runtime";
 import React from "react";
-import { AbsoluteFill, useCurrentFrame, interpolate, Audio } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, Audio, Img, spring, useVideoConfig } from "remotion";
 const GameCanvas = ({ frameData, config }) => {
   const { angle, targetStartAngle, targetSize, success, fail } = frameData;
   const { difficulty, difficulties, colors } = config;
@@ -73,66 +73,129 @@ const GameCanvas = ({ frameData, config }) => {
     columnNumber: 9
   });
 };
+const EndScreenOverlay = ({ score, user, isGameOver }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const scaleIn = spring({
+    frame,
+    fps,
+    config: {
+      damping: 100,
+      stiffness: 150
+    }
+  });
+  const opacity = interpolate(frame, [0, 15], [0, 1]);
+  const finalScoreText = isGameOver ? `Final Score: ${score}` : `Score: ${score}`;
+  return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { padding: "20px", fontFamily: "Arial, sans-serif", color: "white", opacity }, children: [
+    user && /* @__PURE__ */ jsxDEV("div", { style: { position: "absolute", top: "20px", left: "20px", display: "flex", alignItems: "center", gap: "10px", transform: `scale(${scaleIn})` }, children: [
+      /* @__PURE__ */ jsxDEV(Img, { src: user.avatar_url, style: { width: "50px", height: "50px", borderRadius: "50%" } }, void 0, false, {
+        fileName: "<stdin>",
+        lineNumber: 68,
+        columnNumber: 21
+      }),
+      /* @__PURE__ */ jsxDEV("span", { style: { fontSize: "24px", fontWeight: "bold", textShadow: "2px 2px 4px #000" }, children: user.username }, void 0, false, {
+        fileName: "<stdin>",
+        lineNumber: 69,
+        columnNumber: 21
+      })
+    ] }, void 0, true, {
+      fileName: "<stdin>",
+      lineNumber: 67,
+      columnNumber: 18
+    }),
+    /* @__PURE__ */ jsxDEV("div", { style: { position: "absolute", top: "30px", right: "20px", fontSize: "24px", fontWeight: "bold", textShadow: "2px 2px 4px #000", transform: `scale(${scaleIn})` }, children: finalScoreText }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 75,
+      columnNumber: 13
+    })
+  ] }, void 0, true, {
+    fileName: "<stdin>",
+    lineNumber: 64,
+    columnNumber: 9
+  });
+};
 const ReplayComposition = ({ replayData }) => {
   const frame = useCurrentFrame();
   if (!replayData || !replayData.frames || replayData.frames.length < 2) {
     return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: "#1a1a2e", color: "white", justifyContent: "center", alignItems: "center" }, children: "Loading replay..." }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 50,
+      lineNumber: 86,
       columnNumber: 16
     });
   }
   const { frames, config } = replayData;
+  const { currentUser } = config;
   const startTime = frames[0].timestamp;
+  const gameEndTime = frames[frames.length - 1].timestamp;
+  const gameEndFrame = Math.ceil((gameEndTime - startTime) / 1e3 * 30);
   const currentTimestamp = startTime + frame / 30 * 1e3;
-  let frameIndex = frames.findIndex((f) => f.timestamp >= currentTimestamp);
-  if (frameIndex === -1) frameIndex = frames.length - 1;
+  let frameIndex;
+  if (frame < gameEndFrame) {
+    frameIndex = frames.findIndex((f) => f.timestamp >= currentTimestamp);
+    if (frameIndex === -1) frameIndex = frames.length - 1;
+  } else {
+    frameIndex = frames.length - 1;
+  }
   const currentFrameData = frames[frameIndex];
   const score = currentFrameData.score;
   const isGameOver = frameIndex === frames.length - 1 && !currentFrameData.success;
+  const showEndScreen = frame >= gameEndFrame;
   return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: "#1a1a2e" }, children: [
-    /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { top: "5vh", justifyContent: "flex-start", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "clamp(1.5rem, 5vw, 2.5rem)", fontWeight: "bold", color: config.colors.fail.trim(), fontFamily: "Arial, sans-serif" }, children: [
+    !showEndScreen && /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { top: "5vh", justifyContent: "flex-start", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "clamp(1.5rem, 5vw, 2.5rem)", fontWeight: "bold", color: config.colors.fail.trim(), fontFamily: "Arial, sans-serif" }, children: [
       "Score: ",
       score
     ] }, void 0, true, {
       fileName: "<stdin>",
-      lineNumber: 68,
-      columnNumber: 17
-    }) }, void 0, false, {
-      fileName: "<stdin>",
-      lineNumber: 67,
-      columnNumber: 13
-    }),
-    /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { justifyContent: "center", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { width: "90vmin", height: "90vmin" }, children: /* @__PURE__ */ jsxDEV(GameCanvas, { frameData: currentFrameData, config }, void 0, false, {
-      fileName: "<stdin>",
-      lineNumber: 75,
+      lineNumber: 117,
       columnNumber: 21
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 74,
+      lineNumber: 116,
+      columnNumber: 17
+    }),
+    /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { justifyContent: "center", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { width: "90vmin", height: "90vmin" }, children: /* @__PURE__ */ jsxDEV(GameCanvas, { frameData: currentFrameData, config }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 126,
+      columnNumber: 21
+    }) }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 125,
       columnNumber: 17
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 73,
+      lineNumber: 124,
+      columnNumber: 13
+    }),
+    showEndScreen && /* @__PURE__ */ jsxDEV(EndScreenOverlay, { score, user: currentUser, isGameOver }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 131,
+      columnNumber: 32
+    }),
+    /* @__PURE__ */ jsxDEV(Audio, { src: "/start_sound.mp3", startFrom: 0, endAt: 60 }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 134,
       columnNumber: 13
     }),
     frames.map((f, i) => {
       if (!f.success) return null;
       const frameForAudio = Math.round((f.timestamp - startTime) / 1e3 * 30);
-      return /* @__PURE__ */ jsxDEV(Audio, { src: "/success.mp3", startFrom: frameForAudio, endAt: frameForAudio + 30 }, `success-${i}`, false, {
-        fileName: "<stdin>",
-        lineNumber: 82,
-        columnNumber: 24
-      });
+      if (frameForAudio < gameEndFrame) {
+        return /* @__PURE__ */ jsxDEV(Audio, { src: "/success.mp3", startFrom: frameForAudio, endAt: frameForAudio + 30 }, `success-${i}`, false, {
+          fileName: "<stdin>",
+          lineNumber: 141,
+          columnNumber: 27
+        });
+      }
+      return null;
     }),
-    isGameOver && /* @__PURE__ */ jsxDEV(Audio, { src: "/fail.mp3", startFrom: frame - 1 }, void 0, false, {
+    isGameOver && /* @__PURE__ */ jsxDEV(Audio, { src: "/fail.mp3", startFrom: gameEndFrame - 1 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 86,
+      lineNumber: 147,
       columnNumber: 17
     })
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 66,
+    lineNumber: 113,
     columnNumber: 9
   });
 };
