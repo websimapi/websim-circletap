@@ -1,3 +1,5 @@
+import confetti from 'canvas-confetti';
+
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
@@ -43,6 +45,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let successSound, failSound;
+    
+    const myConfetti = confetti.create(null, {
+        resize: true,
+        useWorker: true
+    });
+
+    function playConfetti() {
+        const rect = canvas.getBoundingClientRect();
+        const origin = {
+            x: (rect.left + rect.right) / 2 / window.innerWidth,
+            y: (rect.top + rect.bottom) / 2 / window.innerHeight
+        };
+        myConfetti({
+            particleCount: 50,
+            spread: 90,
+            angle: 270,
+            origin: origin,
+            ticks: 200,
+            gravity: 0.7,
+            scalar: 1.2,
+            colors: ['#4CAF50', '#8BC34A', '#FFFFFF']
+        });
+    }
+
 
     function initAudio() {
         if (window.AudioContext || window.webkitAudioContext) {
@@ -147,36 +173,58 @@ document.addEventListener('DOMContentLoaded', () => {
         draw();
         requestAnimationFrame(gameLoop);
     }
+    
+    function normalizeAngle(a) {
+        const twoPi = Math.PI * 2;
+        return (a % twoPi + twoPi) % twoPi;
+    }
 
     function handleTap() {
         if (gameState !== 'playing') return;
-
-        // The line and the target arc both have a visual width due to ctx.lineWidth.
-        // A successful tap should register if any part of the red line visually overlaps 
-        // with any part of the green target arc.
-        // To achieve this, we calculate the angular half-width of both strokes.
-
-        // The target is drawn with 'lineWidth'. Its angular half-width is:
-        const targetAngularHalfWidth = (lineWidth / 2) / radius;
         
-        // The rotating line is drawn with 'lineWidth / 3'. Its angular half-width is:
-        const lineAngularHalfWidth = (lineWidth / 3 / 2) / radius;
+        // This is a robust geometric collision check that accounts for the visual
+        // thickness of both the line and the target arc.
 
-        // The total tolerance is the sum of these two half-widths. This represents the
-        // extra angular distance on either side of the target zone where the lines will visually overlap.
-        const totalTolerance = targetAngularHalfWidth + lineAngularHalfWidth;
+        // 1. Calculate the angular half-width of the target arc's stroke
+        const targetAngularHalfWidth = Math.atan2(lineWidth / 2, radius);
+        // 2. Calculate the angular half-width of the rotating line's stroke
+        const lineAngularHalfWidth = Math.atan2((lineWidth / 3) / 2, radius);
 
-        // Normalize the difference between the line's angle and the target's start angle
-        // to handle the circle wrapping around from 2*PI to 0.
-        let diff = angle - targetAngle;
-        let normalizedDiff = (diff % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        // 3. Define the full visual range of the target arc.
+        // It starts at its defined angle minus its half-width and ends at its
+        // end angle plus its half-width.
+        let targetStart = normalizeAngle(targetAngle - targetAngularHalfWidth);
+        let targetEnd = normalizeAngle(targetAngle + targetSize + targetAngularHalfWidth);
 
-        // The tap is 'in the zone' if the center of the rotating line is within the target arc's
-        // central path, extended by our calculated total tolerance on both ends.
-        const inZone = normalizedDiff >= -totalTolerance && normalizedDiff < (targetSize + totalTolerance);
+        // 4. Define the full visual range of the rotating line.
+        let lineStart = normalizeAngle(angle - lineAngularHalfWidth);
+        let lineEnd = normalizeAngle(angle + lineAngularHalfWidth);
+        
+        let inZone = false;
+
+        // 5. Check for overlap. This is tricky because the ranges can wrap around
+        // the 0 -> 2*PI boundary.
+        if (targetStart <= targetEnd) { // Case 1: Target does NOT wrap around
+            // Check if the line overlaps, also considering if the line itself wraps
+            if (lineStart <= lineEnd) { // Line does not wrap
+                inZone = lineStart <= targetEnd && targetStart <= lineEnd;
+            } else { // Line wraps (e.g., starts at 350deg, ends at 10deg)
+                inZone = (lineStart <= targetEnd) || (targetStart <= lineEnd);
+            }
+        } else { // Case 2: Target WRAPS around (e.g., starts at 350deg, ends at 20deg)
+            // The target is in two parts: [targetStart, 2*PI] and [0, targetEnd]
+            if (lineStart <= lineEnd) { // Line does not wrap
+                 inZone = (lineStart <= Math.PI * 2 && targetStart <= lineEnd) || (0 <= lineEnd && lineStart <= targetEnd);
+            } else { // Line also wraps
+                // If both wrap, they must overlap.
+                inZone = true;
+            }
+        }
+
 
         if (inZone) {
             if (successSound) successSound();
+            playConfetti();
             score++;
             scoreEl.textContent = score;
             direction *= -1; // Reverse direction
@@ -199,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Use touchend for mobile to avoid issues with tap-and-hold
-    window.addEventListener('touchend', handleTap);
+    window.addEventListener('touchend', handleTap, { passive: false });
     window.addEventListener('mousedown', (e) => {
         // Prevent firing on button clicks
         if (e.target.tagName !== 'BUTTON') {
