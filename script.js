@@ -119,14 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineWidth = lineWidth;
         ctx.stroke();
 
-        // Draw target zone - use the actual angle where the target starts and ends
+        // Draw target zone
         ctx.beginPath();
-        ctx.arc(0, 0, radius, targetAngle - Math.PI / 2, targetAngle + targetSize - Math.PI / 2);
+        ctx.arc(0, 0, radius, targetAngle, targetAngle + targetSize);
         ctx.strokeStyle = '#4CAF50';
         ctx.stroke();
 
-        // Draw rotating line - this should point outward at the current angle
-        ctx.rotate(angle - Math.PI / 2);
+        // Draw rotating line
+        ctx.rotate(angle);
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(radius + lineWidth / 2, 0);
@@ -151,21 +151,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTap() {
         if (gameState !== 'playing') return;
 
-        // Normalize both angles to [0, 2*PI)
-        let normalizedAngle = (angle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        let normalizedTargetStart = (targetAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        let normalizedTargetEnd = ((targetAngle + targetSize) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        // The line has a visual width, and the target area starts drawing from its center.
+        // To make the game feel fairer, we can add a small tolerance to the check.
+        // This tolerance accounts for the visual overlap of the lines.
+        // A small fraction of the target size works well as a tolerance.
+        const tolerance = targetSize * 0.1; 
 
-        let inZone;
-        
-        // Check if target zone wraps around 0
-        if (normalizedTargetEnd < normalizedTargetStart) {
-            // Zone wraps around: we're in if angle >= start OR angle <= end
-            inZone = normalizedAngle >= normalizedTargetStart || normalizedAngle <= normalizedTargetEnd;
-        } else {
-            // Zone doesn't wrap: simple check
-            inZone = normalizedAngle >= normalizedTargetStart && normalizedAngle <= normalizedTargetEnd;
-        }
+        // Check if the current angle is within the target zone, including the tolerance.
+        // We normalize the difference between the line's angle and the target's start angle
+        // to handle the case where the target zone wraps around the circle (e.g., past 360 degrees).
+        let diff = (angle - targetAngle);
+        let normalizedDiff = (diff % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+
+        // The tap is considered 'in the zone' if the normalized difference is within the bounds
+        // of the target size, plus our small tolerance.
+        const inZone = normalizedDiff >= -tolerance && normalizedDiff < (targetSize + tolerance);
 
         if (inZone) {
             if (successSound) successSound();
