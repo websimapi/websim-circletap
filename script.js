@@ -157,7 +157,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Draw rotating line
         ctx.rotate(angle);
         ctx.beginPath();
-        ctx.moveTo(0, 0);
+        // Start the line from the inner edge of the track
+        ctx.moveTo(radius - lineWidth / 2, 0);
+        // End the line at the outer edge of the track
         ctx.lineTo(radius + lineWidth / 2, 0);
         ctx.strokeStyle = colors.fail;
         ctx.lineWidth = lineWidth / 2.5;
