@@ -2,7 +2,7 @@ import { jsxDEV } from "react/jsx-dev-runtime";
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, interpolate, Audio, Img, spring, useVideoConfig, Sequence } from "remotion";
 const GameCanvas = ({ frameData, config }) => {
-  const { angle, targetStartAngle, targetSize, success, fail } = frameData;
+  const { angle, targetStartAngle, targetSize, success, fail, targetColor } = frameData;
   const { difficulty, difficulties, colors } = config;
   const { trackWidthFactor } = difficulties[difficulty];
   const radius = 40;
@@ -32,7 +32,7 @@ const GameCanvas = ({ frameData, config }) => {
       {
         d: `M ${radius * Math.cos(targetStartAngle)} ${radius * Math.sin(targetStartAngle)} A ${radius} ${radius} 0 0 1 ${radius * Math.cos(targetStartAngle + targetSize)} ${radius * Math.sin(targetStartAngle + targetSize)}`,
         fill: "none",
-        stroke: colors.success,
+        stroke: targetColor || colors.success,
         strokeWidth: lineWidth * 0.95,
         strokeLinecap: "round"
       },

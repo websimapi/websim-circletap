@@ -4,7 +4,7 @@
     --secondary-color: #0f3460;
     --accent-color: #e94560;
     --text-color: #dcdcdc;
-    --success-color: #4CAF50;
+    --success-color: #4CAF50; /* Initial color for level 1 */
     --fail-color: #e94560;
 }
 
@@ -130,7 +130,7 @@ button {
 }
 
 button:hover, button:focus {
-    background-color: var(--accent-color);
+    background-color: var(--btn-color, var(--accent-color));
     outline: none;
 }
 

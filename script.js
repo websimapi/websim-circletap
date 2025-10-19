@@ -1,3 +1,5 @@
+import { hsl } from 'd3-color';
+
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
@@ -40,13 +42,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDifficulty = 'easy';
     let replayFrames = [];
     let replayConfig = {};
-    let level, tapsThisLevel, tapsForNextLevel;
+    let level = 1, tapsThisLevel, tapsForNextLevel;
+    let currentColorHsl, targetColorHsl;
 
     const difficulties = {
         easy: { speed: 1.2 * Math.PI, size: 0.4, trackWidthFactor: 0.12 }, 
         medium: { speed: 1.5 * Math.PI, size: 0.25, trackWidthFactor: 0.07 },
         hard: { speed: 1.8 * Math.PI, size: 0.15, trackWidthFactor: 0.035 }
     };
+
+    // Color generation based on level
+    function getHslStringForLevel(level) {
+        const hue = ((level - 1) * 40) % 360;
+        return `hsl(${hue}, 100%, 60%)`;
+    }
 
     // Audio
     let audioCtx;
@@ -127,6 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
         levelDisplay.textContent = level;
         levelDisplay.classList.remove('hidden', 'level-out', 'level-in');
         
+        currentColorHsl = hsl(getHslStringForLevel(1));
+        targetColorHsl = hsl(getHslStringForLevel(1));
+        
         // Stagger the animation slightly
         setTimeout(() => {
             levelDisplay.classList.add('level-in');
@@ -168,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
             targetSize,
             score,
             level, 
+            targetColor: currentColorHsl.toString(),
             success: false,
             timestamp: performance.now(),
         });
@@ -196,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (targetSize > 0) {
             ctx.beginPath();
             ctx.arc(0, 0, radius, targetStartAngle, targetStartAngle + targetSize);
-            ctx.strokeStyle = colors.success;
+            ctx.strokeStyle = currentColorHsl.toString();
             ctx.lineWidth = lineWidth * 0.95; // Make target slightly thinner than track for a better look
             ctx.lineCap = 'round'; // Use round ends for the target zone
             ctx.stroke();
@@ -223,6 +236,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const deltaTime = (currentTime - lastFrameTime) / 1000; // time in seconds
         lastFrameTime = currentTime;
 
+        // Smoothly interpolate color
+        const lerpFactor = Math.min(deltaTime * 2.5, 1); // Adjust transition speed
+        currentColorHsl.h += (targetColorHsl.h - currentColorHsl.h) * lerpFactor;
+        currentColorHsl.s += (targetColorHsl.s - currentColorHsl.s) * lerpFactor;
+        currentColorHsl.l += (targetColorHsl.l - currentColorHsl.l) * lerpFactor;
+        currentColorHsl.opacity += (targetColorHsl.opacity - currentColorHsl.opacity) * lerpFactor;
+
         angle += speed * direction * deltaTime;
         
         replayFrames.push({
@@ -231,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             targetSize,
             score,
             level,
+            targetColor: currentColorHsl.toString(),
             timestamp: currentTime,
         });
 
@@ -295,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function levelUp() {
+        targetColorHsl = hsl(getHslStringForLevel(level + 1));
         levelDisplay.classList.remove('level-in');
         levelDisplay.classList.add('level-out');
 
@@ -326,9 +348,11 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverMenu.classList.add('hidden');
         levelDisplay.classList.add('hidden');
         startMenu.classList.remove('hidden');
-        // Reset to the initial preview state for the start menu
-        currentDifficulty = 'easy'; // Reset to easy for preview
-        targetSize = difficulties.easy.size;
+        // Reset to a preview state based on the last played difficulty
+        level = 1; // Reset level for color preview
+        currentColorHsl = hsl(getHslStringForLevel(1));
+        // currentDifficulty is already set from the last game
+        targetSize = difficulties[currentDifficulty].size;
         targetStartAngle = Math.PI / 4;
         angle = -Math.PI / 2;
         resizeCanvas(); // This will call draw()
@@ -376,6 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
 
     // Initial setup
+    level = 1; // Set for initial draw color
+    currentColorHsl = hsl(getHslStringForLevel(1));
     currentDifficulty = 'easy'; // Set for initial draw
     resizeCanvas();
     // Show a preview of the target zone on the start screen
