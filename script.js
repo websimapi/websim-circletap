@@ -328,7 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Post to comments with video
             await window.websim.postComment({
-                content: `Check out my Circle Tap score of ${score}! 🎯\n\n${videoUrl}`,
+                content: `Check out my Circle Tap score of ${score}! 🎯`,
+                images: [videoUrl], // Pass video URL in the images array
             });
 
             shareReplayBtn.textContent = 'Shared! ✓';
