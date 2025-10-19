@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const difficulties = {
         easy: { speed: 1.2 * Math.PI, size: 0.3, trackWidthFactor: 0.12 }, 
-        medium: { speed: 2.0 * Math.PI, size: 0.175, trackWidthFactor: 0.07 },
-        hard: { speed: 2.8 * Math.PI, size: 0.0875, trackWidthFactor: 0.035 }
+        medium: { speed: 1.6 * Math.PI, size: 0.175, trackWidthFactor: 0.07 },
+        hard: { speed: 2.0 * Math.PI, size: 0.0875, trackWidthFactor: 0.035 }
     };
 
     // Audio
