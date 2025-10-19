@@ -119,14 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineWidth = lineWidth;
         ctx.stroke();
 
-        // Draw target zone
+        // Draw target zone - use the actual angle where the target starts and ends
         ctx.beginPath();
-        ctx.arc(0, 0, radius, targetAngle, targetAngle + targetSize);
+        ctx.arc(0, 0, radius, targetAngle - Math.PI / 2, targetAngle + targetSize - Math.PI / 2);
         ctx.strokeStyle = '#4CAF50';
         ctx.stroke();
 
-        // Draw rotating line
-        ctx.rotate(angle);
+        // Draw rotating line - this should point outward at the current angle
+        ctx.rotate(angle - Math.PI / 2);
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(radius + lineWidth / 2, 0);
@@ -151,27 +151,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTap() {
         if (gameState !== 'playing') return;
 
-        // The angle of the line is determined by its leading edge in the direction of rotation.
-        // We can think of the line having a small angular width. Let's approximate the check
-        // against the center of the rotating line for simplicity and fairness.
-        const lineAngle = angle;
+        // Normalize both angles to [0, 2*PI)
+        let normalizedAngle = (angle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        let normalizedTargetStart = (targetAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        let normalizedTargetEnd = ((targetAngle + targetSize) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+
+        let inZone;
         
-        // Normalize all angles to be in the [0, 2*PI) range to handle wrap-around cases consistently.
-        const normalizedLineAngle = (lineAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        const normalizedTargetStart = (targetAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-
-        // Calculate the end of the target zone
-        const targetEnd = normalizedTargetStart + targetSize;
-
-        let inZone = false;
-        // Check if the target zone wraps around the 0-radian point (e.g., starts at 340 degrees and ends at 20 degrees).
-        if (targetEnd > Math.PI * 2) {
-            // It wraps. Check if the line is in the first part (e.g., 340 to 360) OR the second part (e.g., 0 to 20).
-            const endAngleInFirstLap = targetEnd % (Math.PI * 2);
-            inZone = (normalizedLineAngle >= normalizedTargetStart && normalizedLineAngle < Math.PI * 2) || (normalizedLineAngle >= 0 && normalizedLineAngle < endAngleInFirstLap);
+        // Check if target zone wraps around 0
+        if (normalizedTargetEnd < normalizedTargetStart) {
+            // Zone wraps around: we're in if angle >= start OR angle <= end
+            inZone = normalizedAngle >= normalizedTargetStart || normalizedAngle <= normalizedTargetEnd;
         } else {
-            // It doesn't wrap. A simple check to see if the line angle is between the start and end of the target.
-            inZone = normalizedLineAngle >= normalizedTargetStart && normalizedLineAngle < targetEnd;
+            // Zone doesn't wrap: simple check
+            inZone = normalizedAngle >= normalizedTargetStart && normalizedAngle <= normalizedTargetEnd;
         }
 
         if (inZone) {
