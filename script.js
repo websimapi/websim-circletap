@@ -47,8 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Restart button
     elements.restartBtn.addEventListener('click', () => {
+        ui.clearTimeouts(); // Clear any pending timeouts from the previous game over screen
         game.reset();
-        ui.showStartMenu();
+        ui.showGameScreen();
+        game.start(game.currentDifficulty);
     });
 
     // Replay button

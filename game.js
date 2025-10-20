@@ -81,7 +81,7 @@ export class Game {
         this.angle = -Math.PI / 2;
         this.direction = 1;
 
-        this.level = 0;
+        this.level = 1; // Start at level 1, not 0
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = 1;
         
@@ -215,8 +215,6 @@ export class Game {
             this.tapsThisLevel++;
             if (this.tapsThisLevel >= this.tapsForNextLevel) {
                 this.levelUp();
-            } else if (this.level === 0) { // First tap of the game
-                this.levelUp();
             }
 
             this.direction *= -1;
@@ -250,7 +248,12 @@ export class Game {
     }
 
     reset() {
-        this.level = 0;
+        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+        this.gameState = 'start';
+        this.score = 0;
+        this.level = 1;
+        this.tapsThisLevel = 0;
+        this.tapsForNextLevel = 1;
         this.currentColorHsl = hsl(getHslStringForLevel(1));
         this.targetSize = difficulties[this.currentDifficulty].size;
         this.targetStartAngle = Math.PI / 4;

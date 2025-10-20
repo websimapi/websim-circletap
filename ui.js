@@ -1,6 +1,7 @@
 export class UIController {
     constructor(elements) {
         this.elements = elements;
+        this.levelFadeTimeout = null;
     }
 
     showStartMenu() {
@@ -16,9 +17,11 @@ export class UIController {
         this.elements.scoreDisplay.classList.remove('hidden');
         this.elements.levelDisplay.classList.remove('hidden');
         this.elements.levelDisplay.classList.remove('level-out', 'level-in');
+        // Force reflow to ensure animation triggers
+        void this.elements.levelDisplay.offsetWidth;
         setTimeout(() => {
             this.elements.levelDisplay.classList.add('level-in');
-        }, 100);
+        }, 50);
     }
 
     showGameOverMenu(score) {
@@ -29,7 +32,7 @@ export class UIController {
         this.elements.submitScoreBtn.disabled = false;
         this.elements.submitScoreBtn.textContent = 'To Submit';
         
-        setTimeout(() => {
+        this.levelFadeTimeout = setTimeout(() => {
             this.elements.levelDisplay.classList.add('hidden');
         }, 3000);
     }
@@ -42,11 +45,14 @@ export class UIController {
         const levelDisplay = this.elements.levelDisplay;
         
         if (isInitial) {
+            levelDisplay.classList.remove('hidden'); // Ensure it's visible
             levelDisplay.textContent = level;
             levelDisplay.classList.remove('level-in', 'level-out');
+            // Force reflow
+            void levelDisplay.offsetWidth;
             setTimeout(() => {
                 levelDisplay.classList.add('level-in');
-            }, 100); // Small delay to ensure animation triggers on restart
+            }, 50);
             return;
         }
 
@@ -95,5 +101,12 @@ export class UIController {
     setSubmitButtonState(state, text) {
         this.elements.submitScoreBtn.disabled = state === 'disabled';
         this.elements.submitScoreBtn.textContent = text;
+    }
+
+    clearTimeouts() {
+        if (this.levelFadeTimeout) {
+            clearTimeout(this.levelFadeTimeout);
+            this.levelFadeTimeout = null;
+        }
     }
 }
