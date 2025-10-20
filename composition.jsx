@@ -5,7 +5,7 @@ const GameCanvas = ({ frameData, config }) => {
   const { angle, targetStartAngle, targetSize, success, fail, targetColor } = frameData;
   const { difficulty, difficulties, colors } = config;
   const { trackWidthFactor } = difficulties[difficulty];
-  const radius = 40;
+  const radius = 45;
   const lineWidth = radius * 2 * trackWidthFactor;
   return /* @__PURE__ */ jsxDEV("svg", { viewBox: "-55 -55 110 110", style: { width: "100%", height: "100%" }, children: [
     /* @__PURE__ */ jsxDEV(
@@ -201,7 +201,7 @@ const ReplayComposition = ({ replayData }) => {
         lineNumber: 163,
         columnNumber: 17
       }),
-      /* @__PURE__ */ jsxDEV("div", { style: { width: "90vmin", height: "90vmin" }, children: /* @__PURE__ */ jsxDEV(GameCanvas, { frameData: currentFrameData, config }, void 0, false, {
+      /* @__PURE__ */ jsxDEV("div", { style: { width: "90%", height: "auto", aspectRatio: "1 / 1" }, children: /* @__PURE__ */ jsxDEV(GameCanvas, { frameData: currentFrameData, config }, void 0, false, {
         fileName: "<stdin>",
         lineNumber: 165,
         columnNumber: 21

@@ -46,11 +46,32 @@ export class Game {
     }
 
     resizeCanvas() {
-        const containerSize = Math.min(this.canvas.parentElement.offsetWidth, this.canvas.parentElement.offsetHeight) * 0.9;
-        this.canvas.style.width = `${containerSize}px`;
-        this.canvas.style.height = `${containerSize}px`;
+        const parent = this.canvas.parentElement;
+        const parentWidth = parent.offsetWidth;
+        const parentHeight = parent.offsetHeight;
 
-        this.size = containerSize * this.devicePixelRatio;
+        let containerSize;
+
+        // On landscape screens (like desktop), we want to simulate a portrait container
+        // to keep the game feel consistent with mobile and fit for vertical video.
+        if (parentWidth > parentHeight) {
+            // Simulate a 9:16 aspect ratio container within the height of the screen.
+            const simulatedWidth = parentHeight * (9 / 16);
+            // If the simulated width is wider than the actual screen, just use the screen width.
+            // Otherwise, use the simulated width. This creates a virtual "phone screen" area.
+            containerSize = Math.min(simulatedWidth, parentWidth);
+        } else {
+            // On portrait screens (mobile), the width is the limiting factor.
+            containerSize = parentWidth;
+        }
+
+        // Apply a scaling factor to the container size to determine the final canvas size.
+        const canvasSize = containerSize * 0.9;
+        
+        this.canvas.style.width = `${canvasSize}px`;
+        this.canvas.style.height = `${canvasSize}px`;
+
+        this.size = canvasSize * this.devicePixelRatio;
         this.canvas.width = this.size;
         this.canvas.height = this.size;
         
