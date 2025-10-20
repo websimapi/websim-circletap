@@ -9,4 +9,3 @@ export function hideReplay() {
     const event = new CustomEvent('hideReplay');
     window.dispatchEvent(event);
 }
-

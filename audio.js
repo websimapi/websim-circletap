@@ -2,6 +2,7 @@ let audioCtx;
 let successSound, failSound, startSound;
 let backgroundMusicSource;
 let backgroundMusicGain;
+let analyser;
 let isMusicPlaying = false;
 
 const MAX_MUSIC_VOLUME = 0.3; // Keep background music from being too loud
@@ -55,7 +56,12 @@ async function setupBackgroundMusic() {
         backgroundMusicGain = audioCtx.createGain();
         backgroundMusicGain.gain.value = 0; // Start at 0 volume
 
-        backgroundMusicSource.connect(backgroundMusicGain).connect(audioCtx.destination);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256; // Lower size for performance is fine for this use case
+
+        backgroundMusicSource.connect(backgroundMusicGain);
+        backgroundMusicGain.connect(analyser);
+        analyser.connect(audioCtx.destination);
     } catch (e) {
         console.error("Error loading background music:", e);
     }
@@ -114,6 +120,14 @@ export async function playBackgroundMusic() {
     scheduleFades();
 }
 
+
+export function getAudioData() {
+    if (!analyser) return null;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    analyser.getByteFrequencyData(dataArray);
+    return dataArray;
+}
 
 export function playSuccess() {
     if (successSound) successSound();
