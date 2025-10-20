@@ -33,7 +33,7 @@ export class Game {
         this.currentDifficulty = 'easy';
         this.replayFrames = [];
         this.lastReplayPushTime = 0;
-        this.replayRecordInterval = 1000 / 30; // ~30 FPS
+        this.replayRecordInterval = 1000 / 20; // Record at 20 FPS
         this.replayConfig = {};
         this.level = 0;
         this.tapsThisLevel = 0;
