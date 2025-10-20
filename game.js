@@ -32,6 +32,8 @@ export class Game {
         this.animationFrameId = null;
         this.currentDifficulty = 'easy';
         this.replayFrames = [];
+        this.lastReplayPushTime = 0;
+        this.replayRecordInterval = 1000 / 30; // ~30 FPS
         this.replayConfig = {};
         this.level = 0;
         this.tapsThisLevel = 0;
@@ -118,6 +120,7 @@ export class Game {
             difficulties,
             colors: this.colors,
         };
+        this.lastReplayPushTime = 0;
 
         this.lastFrameTime = performance.now();
         if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
@@ -209,15 +212,18 @@ export class Game {
 
         this.angle += this.speed * this.direction * deltaTime;
         
-        this.replayFrames.push({
-            angle: this.angle,
-            targetStartAngle: this.targetStartAngle,
-            targetSize: this.targetSize,
-            score: this.score,
-            level: this.level,
-            targetColor: this.currentColorHsl.toString(),
-            timestamp: currentTime,
-        });
+        if (currentTime - this.lastReplayPushTime > this.replayRecordInterval) {
+            this.lastReplayPushTime = currentTime;
+            this.replayFrames.push({
+                angle: this.angle,
+                targetStartAngle: this.targetStartAngle,
+                targetSize: this.targetSize,
+                score: this.score,
+                level: this.level,
+                targetColor: this.currentColorHsl.toString(),
+                timestamp: currentTime,
+            });
+        }
 
         this.draw();
         this.animationFrameId = requestAnimationFrame((t) => this.gameLoop(t));

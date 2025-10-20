@@ -1,4 +1,5 @@
 const room = new WebsimSocket();
+const MAX_SCORES_PER_USER = 10;
 
 export async function submitScore(lastGameData, onSuccess, onError) {
     try {
@@ -22,7 +23,14 @@ export async function submitScore(lastGameData, onSuccess, onError) {
 
         if (userRecords && userRecords.length > 0) {
             const userRecord = userRecords[0];
-            const updatedScores = [...(userRecord.scores || []), lastGameData];
+            let updatedScores = [...(userRecord.scores || []), lastGameData];
+            
+            // Sort by score descending and keep only the top N scores
+            updatedScores.sort((a, b) => b.score - a.score);
+            if (updatedScores.length > MAX_SCORES_PER_USER) {
+                updatedScores = updatedScores.slice(0, MAX_SCORES_PER_USER);
+            }
+
             await room.collection('leaderboard_scores_v1').update(userRecord.id, { scores: updatedScores });
         } else {
             await room.collection('leaderboard_scores_v1').create({
