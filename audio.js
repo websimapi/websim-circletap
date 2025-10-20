@@ -1,5 +1,12 @@
 let audioCtx;
 let successSound, failSound, startSound;
+let backgroundMusicSource;
+let backgroundMusicGain;
+let isMusicPlaying = false;
+
+const MAX_MUSIC_VOLUME = 0.3; // Keep background music from being too loud
+const FADE_DURATION = 15; // 15 seconds
+const MUSIC_DURATION = 140; // 140 seconds total length
 
 export function initAudio() {
     if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
@@ -32,6 +39,82 @@ export function initAudio() {
     }
 }
 
+async function setupBackgroundMusic() {
+    if (!audioCtx) initAudio();
+    if (!audioCtx || backgroundMusicSource) return;
+
+    try {
+        const response = await fetch('/Infinite Orbit - Track 1 (Extended 2) - Sonauto.ogg');
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        backgroundMusicSource = audioCtx.createBufferSource();
+        backgroundMusicSource.buffer = audioBuffer;
+        backgroundMusicSource.loop = true;
+
+        backgroundMusicGain = audioCtx.createGain();
+        backgroundMusicGain.gain.value = 0; // Start at 0 volume
+
+        backgroundMusicSource.connect(backgroundMusicGain).connect(audioCtx.destination);
+    } catch (e) {
+        console.error("Error loading background music:", e);
+    }
+}
+
+
+export async function playBackgroundMusic() {
+    if (isMusicPlaying) return;
+    isMusicPlaying = true; // Set immediately to prevent multiple calls
+
+    if (!backgroundMusicSource) {
+        await setupBackgroundMusic();
+    }
+    
+    if (!audioCtx || !backgroundMusicSource) return;
+
+    if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+    }
+
+    backgroundMusicSource.start(0);
+
+    const scheduleFades = () => {
+        const now = audioCtx.currentTime;
+        
+        // Cancel any previously scheduled automations
+        backgroundMusicGain.gain.cancelScheduledValues(now);
+
+        // Initial fade-in
+        backgroundMusicGain.gain.setValueAtTime(0, now);
+        backgroundMusicGain.gain.linearRampToValueAtTime(MAX_MUSIC_VOLUME, now + FADE_DURATION);
+
+        // Schedule fade-out and fade-in for subsequent loops for a long time
+        for (let i = 0; i < 100; i++) { // Schedule for ~4 hours
+            const loopStartTime = now + (i * MUSIC_DURATION);
+            
+            // Time points for the current loop
+            const currentFadeOutStartTime = loopStartTime + MUSIC_DURATION - FADE_DURATION;
+            const currentFadeOutEndTime = loopStartTime + MUSIC_DURATION;
+
+            // Time points for the next loop's fade-in
+            const nextFadeInStartTime = currentFadeOutEndTime;
+            const nextFadeInEndTime = nextFadeInStartTime + FADE_DURATION;
+
+            // Schedule the fade-out at the end of the current loop
+            // We use setValueAtTime to ensure the volume is at max before the ramp starts
+            backgroundMusicGain.gain.setValueAtTime(MAX_MUSIC_VOLUME, currentFadeOutStartTime);
+            backgroundMusicGain.gain.linearRampToValueAtTime(0, currentFadeOutEndTime);
+            
+            // Schedule the fade-in for the beginning of the next loop
+            backgroundMusicGain.gain.setValueAtTime(0, nextFadeInStartTime);
+            backgroundMusicGain.gain.linearRampToValueAtTime(MAX_MUSIC_VOLUME, nextFadeInEndTime);
+        }
+    };
+    
+    scheduleFades();
+}
+
+
 export function playSuccess() {
     if (successSound) successSound();
 }
@@ -43,4 +126,3 @@ export function playFail() {
 export function playStart() {
     if (startSound) startSound();
 }
-

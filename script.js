@@ -2,9 +2,18 @@ import { Game, difficulties } from './game.js';
 import { UIController } from './ui.js';
 import { submitScore, fetchLeaderboard, renderLeaderboard } from './leaderboard.js';
 import { showReplay, hideReplay } from './replay.js';
+import { playBackgroundMusic } from './audio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
+    let hasInteracted = false;
+
+    const handleFirstInteraction = () => {
+        if (!hasInteracted) {
+            hasInteracted = true;
+            playBackgroundMusic();
+        }
+    };
     
     // UI Elements
     const elements = {
@@ -43,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Difficulty selection
     elements.difficultyBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            handleFirstInteraction();
             game.start(btn.dataset.difficulty);
             ui.showGameScreen();
         });
@@ -65,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Replay button
     elements.replayBtn.addEventListener('click', async () => {
+        handleFirstInteraction();
         ui.showReplayContainer();
         
         if (!game.replayConfig.currentUser) {
@@ -130,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Leaderboard button
     elements.leaderboardBtn.addEventListener('click', async () => {
+        handleFirstInteraction();
         loadLeaderboard('easy'); // Default to easy
     });
 

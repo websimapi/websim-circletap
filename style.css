@@ -195,6 +195,13 @@ button:hover, button:focus {
     outline: none;
 }
 
+.difficulty-btn[data-difficulty="medium"] {
+    --btn-color: #f07b3f;
+}
+.difficulty-btn[data-difficulty="hard"] {
+    --btn-color: #e94560;
+}
+
 button:active {
     transform: scale(0.95);
 }
