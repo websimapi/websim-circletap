@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         await submitScore(
             game.lastGameData,
-            (progressText) => ui.setSubmitButtonState('disabled', progressText),
             () => ui.setSubmitButtonState('disabled', 'Submitted!'),
             () => {
                 ui.setSubmitButtonState('disabled', 'Error!');
@@ -142,24 +141,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? playerData.allScores[scoreIndex]
                 : playerData.bestGameData;
 
-            if (playerData && gameData && gameData.replayData) {
-                let replayData = gameData.replayData;
-                
-                if(replayData.url){
-                    ui.showVideoPlayer(replayData.url);
-                    return;
-                }
+            if (playerData && gameData && gameData.replayDataUrl) {
+                try {
+                    const originalText = watchBtn.textContent;
+                    watchBtn.textContent = 'Loading...';
+                    watchBtn.disabled = true;
 
-                if (!replayData.config.currentUser) {
-                    replayData.config.currentUser = {
-                        username: playerData.username,
-                        avatar_url: `https://images.websim.com/avatar/${playerData.username}`
-                    };
-                }
+                    const response = await fetch(gameData.replayDataUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const replayData = await response.json();
 
-                elements.leaderboardView.classList.add('hidden');
-                ui.showReplayContainer();
-                showReplay(replayData);
+                    if (!replayData.config.currentUser) {
+                        replayData.config.currentUser = {
+                            username: playerData.username,
+                            avatar_url: `https://images.websim.com/avatar/${playerData.username}`
+                        };
+                    }
+
+                    elements.leaderboardView.classList.add('hidden');
+                    ui.showReplayContainer();
+                    showReplay(replayData);
+                    
+                    watchBtn.textContent = originalText;
+                    watchBtn.disabled = false;
+
+                } catch (fetchError) {
+                    console.error("Error fetching replay data:", fetchError);
+                    alert("Could not load replay.");
+                    watchBtn.textContent = 'Failed';
+                    setTimeout(() => {
+                        watchBtn.textContent = 'Watch';
+                        watchBtn.disabled = false;
+                    }, 2000);
+                }
             }
         } else if (entry) {
             const scoreList = entry.nextElementSibling;

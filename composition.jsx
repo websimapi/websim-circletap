@@ -1,8 +1,8 @@
 import { jsxDEV } from "react/jsx-dev-runtime";
-import React, { useMemo } from "react";
+import React from "react";
 import { AbsoluteFill, useCurrentFrame, interpolate, Audio, Img, spring, useVideoConfig, Sequence } from "remotion";
 const GameCanvas = ({ frameData, config }) => {
-  const { angle, targetStartAngle, targetSize, targetColor } = frameData;
+  const { angle, targetStartAngle, targetSize, success, fail, targetColor } = frameData;
   const { difficulty, difficulties, colors } = config;
   const { trackWidthFactor } = difficulties[difficulty];
   const radius = 45;
@@ -129,22 +129,22 @@ const EndScreenOverlay = ({ score, level, user, isGameOver }) => {
     ] }, void 0, true, {
       fileName: "<stdin>",
       lineNumber: 99,
-      columnNumber: 17
+      columnNumber: 18
     }),
     /* @__PURE__ */ jsxDEV("div", { style: { position: "absolute", top: "30px", right: "20px", fontSize: "24px", fontWeight: "bold", textShadow: "2px 2px 4px #000", transform: `scale(${scaleIn})`, textAlign: "right" }, children: [
       /* @__PURE__ */ jsxDEV("div", { children: finalScoreText }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 107,
+        lineNumber: 108,
         columnNumber: 17
       }),
       /* @__PURE__ */ jsxDEV("div", { children: finalLevelText }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 108,
+        lineNumber: 109,
         columnNumber: 17
       })
     ] }, void 0, true, {
       fileName: "<stdin>",
-      lineNumber: 106,
+      lineNumber: 107,
       columnNumber: 13
     })
   ] }, void 0, true, {
@@ -153,149 +153,105 @@ const EndScreenOverlay = ({ score, level, user, isGameOver }) => {
     columnNumber: 9
   });
 };
-const useGameState = (replayData) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  return useMemo(() => {
-    if (!replayData || !replayData.angleFrames || !replayData.events) {
-      return null;
-    }
-    const { angleFrames, events, config, duration } = replayData;
-    const { initialState } = config;
-    const currentTimestamp = frame / fps * 1e3;
-    let angleIndex = angleFrames.findIndex(([ts]) => ts >= currentTimestamp);
-    if (angleIndex === -1) angleIndex = angleFrames.length - 1;
-    const angle = angleFrames[angleIndex] ? angleFrames[angleIndex][1] : 0;
-    let score = initialState.score;
-    let level = initialState.level;
-    let targetStartAngle = initialState.targetStartAngle;
-    let targetColor = initialState.targetColor;
-    for (const event of events) {
-      if (event.timestamp > currentTimestamp) break;
-      switch (event.type) {
-        case "success":
-          score = event.score;
-          targetStartAngle = event.newTargetStartAngle;
-          break;
-        case "levelup":
-          level = event.level;
-          targetColor = event.targetColor;
-          break;
-        case "gameover":
-          break;
-      }
-    }
-    const isGameOver = events[events.length - 1]?.type === "gameover";
-    const gameEndFrame = Math.ceil(duration / 1e3 * fps);
-    return {
-      angle,
-      targetStartAngle,
-      targetSize: initialState.targetSize,
-      targetColor,
-      score,
-      level,
-      isGameOver,
-      gameEndFrame
-    };
-  }, [frame, fps, replayData]);
-};
 const ReplayComposition = ({ replayData }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const gameState = useGameState(replayData);
-  if (!gameState) {
+  if (!replayData || !replayData.frames || replayData.frames.length < 2) {
     return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: "#1a1a2e", color: "white", justifyContent: "center", alignItems: "center" }, children: "Loading replay..." }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 178,
+      lineNumber: 119,
       columnNumber: 16
     });
   }
-  const {
-    angle,
-    targetStartAngle,
-    targetSize,
-    targetColor,
-    score,
-    level,
-    isGameOver,
-    gameEndFrame
-  } = gameState;
-  const { config, events } = replayData;
+  const { frames, config } = replayData;
   const { currentUser } = config;
+  const startTime = frames[0].timestamp;
+  const gameEndTime = frames[frames.length - 1].timestamp;
+  const gameEndFrame = Math.ceil((gameEndTime - startTime) / 1e3 * 30);
+  const currentTimestamp = startTime + frame / 30 * 1e3;
+  let frameIndex;
+  if (frame < gameEndFrame) {
+    frameIndex = frames.findIndex((f) => f.timestamp >= currentTimestamp);
+    if (frameIndex === -1) frameIndex = frames.length - 1;
+  } else {
+    frameIndex = frames.length - 1;
+  }
+  const currentFrameData = frames[frameIndex];
+  const score = currentFrameData.score;
+  const level = currentFrameData.level || 1;
+  const isGameOver = frameIndex === frames.length - 1 && !currentFrameData.success;
   const showEndScreen = frame >= gameEndFrame;
   const isDuringEndScreen = frame >= gameEndFrame && frame < gameEndFrame + 90;
-  const currentFrameData = { angle, targetStartAngle, targetSize, targetColor };
-  const successEvents = events.filter((e) => e.type === "success");
+  const successFrames = frames.filter((f) => f.success);
   return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: "#1a1a2e" }, children: [
     !showEndScreen && /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { top: "5vh", justifyContent: "flex-start", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "clamp(1.5rem, 5vw, 2.5rem)", fontWeight: "bold", color: config.colors.fail.trim(), fontFamily: "Arial, sans-serif" }, children: [
       "Score: ",
       score
     ] }, void 0, true, {
       fileName: "<stdin>",
-      lineNumber: 208,
+      lineNumber: 155,
       columnNumber: 21
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 207,
+      lineNumber: 154,
       columnNumber: 17
     }),
     /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { justifyContent: "center", alignItems: "center" }, children: [
       /* @__PURE__ */ jsxDEV(LevelDisplay, { level, isVisible: !showEndScreen || isDuringEndScreen }, `level-${level}`, false, {
         fileName: "<stdin>",
-        lineNumber: 216,
+        lineNumber: 163,
         columnNumber: 17
       }),
       /* @__PURE__ */ jsxDEV("div", { style: { width: "90%", height: "auto", aspectRatio: "1 / 1" }, children: /* @__PURE__ */ jsxDEV(GameCanvas, { frameData: currentFrameData, config }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 218,
+        lineNumber: 165,
         columnNumber: 21
       }) }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 217,
+        lineNumber: 164,
         columnNumber: 17
       })
     ] }, void 0, true, {
       fileName: "<stdin>",
-      lineNumber: 215,
+      lineNumber: 162,
       columnNumber: 13
     }),
     showEndScreen && /* @__PURE__ */ jsxDEV(EndScreenOverlay, { score, level, user: currentUser, isGameOver }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 223,
-      columnNumber: 31
+      lineNumber: 170,
+      columnNumber: 32
     }),
     /* @__PURE__ */ jsxDEV(Audio, { src: "/start_sound.mp3", volume: 0.5 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 226,
+      lineNumber: 173,
       columnNumber: 13
     }),
-    successEvents.map((event, i) => {
-      const frameForAudio = Math.round(event.timestamp / 1e3 * fps);
+    successFrames.map((f, i) => {
+      const frameForAudio = Math.round((f.timestamp - startTime) / 1e3 * 30);
       if (frameForAudio < gameEndFrame) {
         return /* @__PURE__ */ jsxDEV(Sequence, { from: frameForAudio, children: /* @__PURE__ */ jsxDEV(Audio, { src: "/success.mp3" }, void 0, false, {
           fileName: "<stdin>",
-          lineNumber: 233,
-          columnNumber: 29
+          lineNumber: 181,
+          columnNumber: 25
         }) }, `success-${i}`, false, {
           fileName: "<stdin>",
-          lineNumber: 232,
-          columnNumber: 25
+          lineNumber: 180,
+          columnNumber: 22
         });
       }
       return null;
     }),
     isGameOver && /* @__PURE__ */ jsxDEV(Sequence, { from: gameEndFrame - 1, children: /* @__PURE__ */ jsxDEV(Audio, { src: "/fail.mp3" }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 242,
+      lineNumber: 190,
       columnNumber: 21
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 241,
+      lineNumber: 189,
       columnNumber: 17
     })
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 204,
+    lineNumber: 151,
     columnNumber: 9
   });
 };

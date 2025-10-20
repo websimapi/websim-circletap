@@ -31,13 +31,7 @@ export class Game {
         this.lastFrameTime = 0;
         this.animationFrameId = null;
         this.currentDifficulty = 'easy';
-        
-        // Replay recording state
-        this.replayAngleFrames = [];
-        this.replayEvents = [];
-        this.timeSinceLastRecord = 0;
-        this.replayStartTime = 0;
-
+        this.replayFrames = [];
         this.replayConfig = {};
         this.level = 0;
         this.tapsThisLevel = 0;
@@ -118,24 +112,11 @@ export class Game {
         this.generateNewTarget();
         
         this.gameState = 'playing';
-        
-        // Reset replay data
-        this.replayAngleFrames = [];
-        this.replayEvents = [];
-        this.replayStartTime = performance.now();
-        this.timeSinceLastRecord = 0;
-
+        this.replayFrames = [];
         this.replayConfig = {
             difficulty: this.currentDifficulty,
             difficulties,
             colors: this.colors,
-            initialState: {
-                score: 0,
-                level: 1,
-                targetStartAngle: this.targetStartAngle,
-                targetSize: this.targetSize,
-                targetColor: this.currentColorHsl.toString()
-            }
         };
 
         this.lastFrameTime = performance.now();
@@ -151,10 +132,16 @@ export class Game {
         this.gameState = 'gameover';
         
         if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-
-        this.replayEvents.push({
-            timestamp: performance.now() - this.replayStartTime,
-            type: 'gameover'
+        
+        this.replayFrames.push({
+            angle: this.angle,
+            targetStartAngle: this.targetStartAngle,
+            targetSize: this.targetSize,
+            score: this.score,
+            level: this.level, 
+            targetColor: this.currentColorHsl.toString(),
+            success: false,
+            timestamp: performance.now(),
         });
 
         this.lastGameData = {
@@ -162,10 +149,8 @@ export class Game {
             level: this.level,
             difficulty: this.currentDifficulty,
             replayData: {
-                angleFrames: this.replayAngleFrames,
-                events: this.replayEvents,
+                frames: this.replayFrames,
                 config: this.replayConfig,
-                duration: performance.now() - this.replayStartTime,
             },
             timestamp: new Date().toISOString(),
         };
@@ -212,27 +197,27 @@ export class Game {
     gameLoop(currentTime) {
         if (this.gameState !== 'playing') return;
 
-        const deltaTime = (currentTime - this.lastFrameTime);
+        const deltaTime = (currentTime - this.lastFrameTime) / 1000;
         this.lastFrameTime = currentTime;
 
         // Smooth color interpolation
-        const lerpFactor = Math.min(deltaTime / 1000 * 2.5, 1);
+        const lerpFactor = Math.min(deltaTime * 2.5, 1);
         this.currentColorHsl.h += (this.targetColorHsl.h - this.currentColorHsl.h) * lerpFactor;
         this.currentColorHsl.s += (this.targetColorHsl.s - this.currentColorHsl.s) * lerpFactor;
         this.currentColorHsl.l += (this.targetColorHsl.l - this.currentColorHsl.l) * lerpFactor;
         this.currentColorHsl.opacity += (this.targetColorHsl.opacity - this.currentColorHsl.opacity) * lerpFactor;
 
-        this.angle += this.speed * this.direction * (deltaTime / 1000);
+        this.angle += this.speed * this.direction * deltaTime;
         
-        // Record frame at ~30fps
-        this.timeSinceLastRecord += deltaTime;
-        if (this.timeSinceLastRecord >= 1000 / 30) {
-            this.replayAngleFrames.push([
-                Math.round(currentTime - this.replayStartTime),
-                parseFloat(this.angle.toFixed(4))
-            ]);
-            this.timeSinceLastRecord = 0;
-        }
+        this.replayFrames.push({
+            angle: this.angle,
+            targetStartAngle: this.targetStartAngle,
+            targetSize: this.targetSize,
+            score: this.score,
+            level: this.level,
+            targetColor: this.currentColorHsl.toString(),
+            timestamp: currentTime,
+        });
 
         this.draw();
         this.animationFrameId = requestAnimationFrame((t) => this.gameLoop(t));
@@ -249,23 +234,23 @@ export class Game {
             this.score++;
             
             this.tapsThisLevel++;
-            
-            this.direction *= -1;
-            this.speed *= 1.04;
-
-            const previousTargetStartAngle = this.targetStartAngle;
-            this.generateNewTarget();
-
-            this.replayEvents.push({
-                timestamp: performance.now() - this.replayStartTime,
-                type: 'success',
-                score: this.score,
-                newTargetStartAngle: this.targetStartAngle,
-            });
-
             if (this.tapsThisLevel >= this.tapsForNextLevel) {
                 this.levelUp();
             }
+
+            this.direction *= -1;
+            this.speed *= 1.04;
+
+            const lastFrame = this.replayFrames[this.replayFrames.length - 1];
+            if (lastFrame) {
+                lastFrame.success = true;
+                lastFrame.newTarget = {
+                    start: this.targetStartAngle,
+                    size: difficulties[this.currentDifficulty].size
+                };
+            }
+
+            this.generateNewTarget();
             
             if (this.onScoreUpdate) this.onScoreUpdate(this.score);
         } else {
@@ -279,13 +264,6 @@ export class Game {
         this.level++;
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = this.level;
-
-        this.replayEvents.push({
-            timestamp: performance.now() - this.replayStartTime,
-            type: 'levelup',
-            level: this.level,
-            targetColor: this.targetColorHsl.toString()
-        });
 
         if (this.onLevelUp) this.onLevelUp(this.level);
     }
