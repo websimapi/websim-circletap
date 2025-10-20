@@ -131,7 +131,7 @@ html, body {
     align-items: stretch;
 }
 
-#leaderboard-btn {
+#leaderboard-btn, #home-btn {
     flex-grow: 0; /* Let it size to its content/padding */
     padding-left: 12px;
     padding-right: 12px;
@@ -140,7 +140,7 @@ html, body {
     align-items: center;
 }
 
-#leaderboard-btn svg {
+#leaderboard-btn svg, #home-btn svg {
     height: 1.2em; /* Size relative to button font-size */
 }
 

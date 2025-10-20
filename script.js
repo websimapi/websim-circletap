@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameOverMenu: document.getElementById('game-over-menu'),
         finalScoreEl: document.getElementById('final-score'),
         restartBtn: document.getElementById('restart-btn'),
+        homeBtn: document.getElementById('home-btn'),
         difficultyBtns: document.querySelectorAll('.difficulty-btn'),
         replayBtn: document.getElementById('replay-btn'),
         replayContainer: document.getElementById('replay-container'),
@@ -51,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         game.reset();
         ui.showGameScreen();
         game.start(game.currentDifficulty);
+    });
+
+    // Home button
+    elements.homeBtn.addEventListener('click', () => {
+        ui.clearTimeouts();
+        game.reset();
+        ui.showStartMenu();
     });
 
     // Replay button

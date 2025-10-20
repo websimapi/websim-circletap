@@ -9,6 +9,8 @@ export class UIController {
         this.elements.gameOverMenu.classList.add('hidden');
         this.elements.scoreDisplay.classList.add('hidden');
         this.elements.levelDisplay.classList.add('hidden');
+        this.elements.submitScoreBtn.disabled = false;
+        this.elements.submitScoreBtn.textContent = 'To Submit';
     }
 
     showGameScreen() {
