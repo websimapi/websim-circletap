@@ -237,6 +237,33 @@ button:active {
     line-height: 1;
 }
 
+#leaderboard-difficulty-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.leaderboard-filter-btn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    border: 1px solid var(--secondary-color);
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.leaderboard-filter-btn:hover {
+    background-color: var(--secondary-color);
+}
+
+.leaderboard-filter-btn.active {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    font-weight: bold;
+}
+
 #leaderboard-view {
     position: fixed;
     top: 0;

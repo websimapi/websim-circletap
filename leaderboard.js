@@ -38,17 +38,19 @@ export async function submitScore(lastGameData, onSuccess, onError) {
     }
 }
 
-export async function fetchLeaderboard() {
+export async function fetchLeaderboard(difficulty) {
+    const collection = room.collection(COLLECTION_NAME);
+    const filteredCollection = difficulty ? collection.filter({ difficulty: difficulty }) : collection;
+
     const allScores = await new Promise(resolve => {
-        const collection = room.collection(COLLECTION_NAME);
         let unsubscribe;
         
         const timeout = setTimeout(() => {
             if (unsubscribe) unsubscribe();
-            resolve(collection.getList());
+            resolve(filteredCollection.getList());
         }, 2500);
 
-        unsubscribe = collection.subscribe(records => {
+        unsubscribe = filteredCollection.subscribe(records => {
             clearTimeout(timeout);
             if (unsubscribe) unsubscribe();
             resolve(records);

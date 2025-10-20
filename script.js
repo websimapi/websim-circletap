@@ -24,7 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
         leaderboardBtn: document.getElementById('leaderboard-btn'),
         leaderboardView: document.getElementById('leaderboard-view'),
         closeLeaderboardBtn: document.getElementById('close-leaderboard-btn'),
-        leaderboardList: document.getElementById('leaderboard-list')
+        leaderboardList: document.getElementById('leaderboard-list'),
+        leaderboardDifficultyFilters: document.getElementById('leaderboard-difficulty-filters'),
+        leaderboardFilterBtns: document.querySelectorAll('.leaderboard-filter-btn')
     };
 
     const game = new Game(canvas);
@@ -102,23 +104,40 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     });
 
-    // Leaderboard button
-    elements.leaderboardBtn.addEventListener('click', async () => {
+    async function loadLeaderboard(difficulty) {
         ui.showLeaderboardView();
         elements.leaderboardList.innerHTML = '<p>Loading scores...</p>';
         rankedPlayersData = [];
 
+        // Update active button state
+        elements.leaderboardFilterBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.difficulty === difficulty);
+        });
+
         try {
-            rankedPlayersData = await fetchLeaderboard();
+            rankedPlayersData = await fetchLeaderboard(difficulty);
             
             if (rankedPlayersData.length === 0) {
-                elements.leaderboardList.innerHTML = '<p>No scores submitted yet. Be the first!</p>';
+                elements.leaderboardList.innerHTML = `<p>No scores for ${difficulty} difficulty yet. Be the first!</p>`;
             } else {
                 elements.leaderboardList.innerHTML = renderLeaderboard(rankedPlayersData);
             }
         } catch (error) {
             console.error("Error fetching leaderboard:", error);
             elements.leaderboardList.innerHTML = '<p>Could not load leaderboard. Please try again later.</p>';
+        }
+    }
+
+    // Leaderboard button
+    elements.leaderboardBtn.addEventListener('click', async () => {
+        loadLeaderboard('easy'); // Default to easy
+    });
+
+    elements.leaderboardDifficultyFilters.addEventListener('click', (e) => {
+        const targetBtn = e.target.closest('.leaderboard-filter-btn');
+        if (targetBtn && !targetBtn.classList.contains('active')) {
+            const difficulty = targetBtn.dataset.difficulty;
+            loadLeaderboard(difficulty);
         }
     });
 
