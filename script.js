@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         await submitScore(
             game.lastGameData,
+            (progressText) => ui.setSubmitButtonState('disabled', progressText),
             () => ui.setSubmitButtonState('disabled', 'Submitted!'),
             () => {
                 ui.setSubmitButtonState('disabled', 'Error!');
@@ -142,7 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 : playerData.bestGameData;
 
             if (playerData && gameData && gameData.replayData) {
-                const replayData = gameData.replayData;
+                let replayData = gameData.replayData;
+                
+                if(replayData.url){
+                    ui.showVideoPlayer(replayData.url);
+                    return;
+                }
 
                 if (!replayData.config.currentUser) {
                     replayData.config.currentUser = {

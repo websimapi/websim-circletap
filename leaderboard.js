@@ -1,9 +1,29 @@
+import { renderReplayToVideo } from './replay.js';
+
 const room = new WebsimSocket();
 
-export async function submitScore(lastGameData, onSuccess, onError) {
+export async function submitScore(lastGameData, onProgress, onSuccess, onError) {
     try {
         const currentUser = await window.websim.getCurrentUser();
         
+        let replayDataForStorage = lastGameData.replayData;
+        
+        const jsonData = JSON.stringify(lastGameData.replayData);
+        if (jsonData.length > 200 * 1024) { // 200KB limit for safety
+            if(onProgress) onProgress('Recording replay...');
+            const videoBlob = await renderReplayToVideo(lastGameData.replayData);
+            
+            if(onProgress) onProgress('Uploading replay...');
+            const videoUrl = await window.websim.upload(videoBlob);
+            
+            replayDataForStorage = { url: videoUrl };
+        }
+
+        const scoreToSubmit = {
+            ...lastGameData,
+            replayData: replayDataForStorage
+        };
+
         const userRecords = await new Promise(resolve => {
             const collection = room.collection('leaderboard_scores_v1').filter({ username: currentUser.username });
             let unsubscribe;
@@ -22,11 +42,11 @@ export async function submitScore(lastGameData, onSuccess, onError) {
 
         if (userRecords && userRecords.length > 0) {
             const userRecord = userRecords[0];
-            const updatedScores = [...(userRecord.scores || []), lastGameData];
+            const updatedScores = [...(userRecord.scores || []), scoreToSubmit];
             await room.collection('leaderboard_scores_v1').update(userRecord.id, { scores: updatedScores });
         } else {
             await room.collection('leaderboard_scores_v1').create({
-                scores: [lastGameData]
+                scores: [scoreToSubmit]
             });
         }
         

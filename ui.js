@@ -2,6 +2,16 @@ export class UIController {
     constructor(elements) {
         this.elements = elements;
         this.levelFadeTimeout = null;
+        
+        this.elements.replayContainer.insertAdjacentHTML('afterend', `
+            <div id="video-player-container" class="hidden">
+                <video id="replay-video" controls autoplay loop playsinline></video>
+                <button id="close-video-btn" aria-label="Close video player">&times;</button>
+            </div>
+        `);
+        this.elements.videoPlayerContainer = document.getElementById('video-player-container');
+        this.elements.replayVideo = document.getElementById('replay-video');
+        document.getElementById('close-video-btn').addEventListener('click', () => this.hideVideoPlayer());
     }
 
     showStartMenu() {
@@ -84,10 +94,24 @@ export class UIController {
     hideReplayContainer() {
         this.elements.replayContainer.classList.add('hidden');
         if (!this.elements.leaderboardView.classList.contains('hidden')) {
-            this.elements.leaderboardView.classList.remove('hidden');
+            // Don't show game over menu if we came from leaderboard
         } else {
             this.elements.gameOverMenu.classList.remove('hidden');
         }
+    }
+
+    showVideoPlayer(url) {
+        this.elements.videoPlayerContainer.classList.remove('hidden');
+        this.elements.replayVideo.src = url;
+        this.elements.replayVideo.play();
+        this.elements.leaderboardView.classList.add('hidden');
+    }
+    
+    hideVideoPlayer() {
+        this.elements.videoPlayerContainer.classList.add('hidden');
+        this.elements.replayVideo.pause();
+        this.elements.replayVideo.src = '';
+        this.elements.leaderboardView.classList.remove('hidden');
     }
 
     showLeaderboardView() {
