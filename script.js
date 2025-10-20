@@ -141,33 +141,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? playerData.allScores[scoreIndex]
                 : playerData.bestGameData;
 
-            if (playerData && gameData && gameData.replayDataUrl) {
-                try {
-                    watchBtn.disabled = true;
-                    watchBtn.textContent = 'Loading...';
+            if (playerData && gameData && gameData.replayData) {
+                const replayData = gameData.replayData;
 
-                    const response = await fetch(gameData.replayDataUrl);
-                    if (!response.ok) throw new Error('Failed to fetch replay data');
-                    const replayData = await response.json();
-
-                    if (!replayData.config.currentUser) {
-                        replayData.config.currentUser = {
-                            username: playerData.username,
-                            avatar_url: `https://images.websim.com/avatar/${playerData.username}`
-                        };
-                    }
-
-                    elements.leaderboardView.classList.add('hidden');
-                    ui.showReplayContainer();
-                    showReplay(replayData);
-
-                } catch (err) {
-                    console.error("Error loading replay:", err);
-                    alert("Could not load replay.");
-                } finally {
-                    watchBtn.disabled = false;
-                    watchBtn.textContent = watchBtn.dataset.originalText || 'Watch';
+                if (!replayData.config.currentUser) {
+                    replayData.config.currentUser = {
+                        username: playerData.username,
+                        avatar_url: `https://images.websim.com/avatar/${playerData.username}`
+                    };
                 }
+
+                elements.leaderboardView.classList.add('hidden');
+                ui.showReplayContainer();
+                showReplay(replayData);
             }
         } else if (entry) {
             const scoreList = entry.nextElementSibling;

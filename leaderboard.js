@@ -1,21 +1,9 @@
 const room = new WebsimSocket();
-const MAX_SCORES_PER_USER = 10;
 
 export async function submitScore(lastGameData, onSuccess, onError) {
     try {
         const currentUser = await window.websim.getCurrentUser();
         
-        // 1. Upload replay data to get a URL
-        const replayBlob = new Blob([JSON.stringify(lastGameData.replayData)], { type: 'application/json' });
-        const replayUrl = await window.websim.upload(replayBlob);
-        
-        // 2. Create a slim game data object for storage
-        const gameDataForStorage = {
-            ...lastGameData,
-            replayDataUrl: replayUrl,
-        };
-        delete gameDataForStorage.replayData; // Remove the large data object
-
         const userRecords = await new Promise(resolve => {
             const collection = room.collection('leaderboard_scores_v1').filter({ username: currentUser.username });
             let unsubscribe;
@@ -34,18 +22,11 @@ export async function submitScore(lastGameData, onSuccess, onError) {
 
         if (userRecords && userRecords.length > 0) {
             const userRecord = userRecords[0];
-            let updatedScores = [...(userRecord.scores || []), gameDataForStorage];
-            
-            // Sort by score descending and keep only the top N scores
-            updatedScores.sort((a, b) => b.score - a.score);
-            if (updatedScores.length > MAX_SCORES_PER_USER) {
-                updatedScores = updatedScores.slice(0, MAX_SCORES_PER_USER);
-            }
-
+            const updatedScores = [...(userRecord.scores || []), lastGameData];
             await room.collection('leaderboard_scores_v1').update(userRecord.id, { scores: updatedScores });
         } else {
             await room.collection('leaderboard_scores_v1').create({
-                scores: [gameDataForStorage]
+                scores: [lastGameData]
             });
         }
         

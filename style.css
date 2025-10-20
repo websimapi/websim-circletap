@@ -388,13 +388,6 @@ button:active {
     line-height: 1;
 }
 
-.leaderboard-footnote {
-    margin-top: 15px;
-    font-size: 0.8rem;
-    color: #aaa;
-    text-align: center;
-}
-
 .hidden {
     display: none !important;
 }
