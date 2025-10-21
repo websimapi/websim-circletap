@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <canvas id="background-canvas"></canvas>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="ui-container">
@@ -76,10 +77,12 @@
         "@websim/remotion/player": "https://esm.websim.com/@websim/remotion/player",
         "marked": "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js",
         "dompurify": "https://cdn.jsdelivr.net/npm/dompurify/dist/purify.es.min.js",
-        "d3-color": "https://esm.sh/d3-color@3.1.0"
+        "d3-color": "https://esm.sh/d3-color@3.1.0",
+        "three": "https://esm.sh/three"
       }
     }
     </script>
+    <script type="module" src="background.js"></script>
     <script type="module" src="utils.js"></script>
     <script type="module" src="audio.js"></script>
     <script type="module" src="game.js"></script>
