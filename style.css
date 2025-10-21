@@ -423,7 +423,7 @@ button:active {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 15px;
+    gap: 8px;
     margin-top: 20px;
     padding-bottom: 10px; /* Space from bottom of screen */
     width: 100%;
@@ -431,7 +431,8 @@ button:active {
 }
 
 #leaderboard-pagination button {
-    padding: 8px 16px;
+    padding: 8px 12px;
+    min-width: 44px;
 }
 
 #leaderboard-pagination .page-info {

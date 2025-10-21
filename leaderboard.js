@@ -146,12 +146,14 @@ export function renderLeaderboardPagination(totalPages, currentPage) {
     if (totalPages <= 1) return '';
 
     return `
-        <button id="prev-page-btn" ${currentPage === 1 ? 'disabled' : ''}&lt; Prev</button>
+        <button id="first-page-btn" ${currentPage === 1 ? 'disabled' : ''} aria-label="First page">&lt;&lt;</button>
+        <button id="prev-page-btn" ${currentPage === 1 ? 'disabled' : ''} aria-label="Previous page">&lt;</button>
         <div class="page-info">
             Page 
             <input type="number" id="page-input" value="${currentPage}" min="1" max="${totalPages}"> 
             of ${totalPages}
         </div>
-        <button id="next-page-btn" ${currentPage === totalPages ? 'disabled' : ''}>Next &gt;</button>
+        <button id="next-page-btn" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Next page">&gt;</button>
+        <button id="last-page-btn" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Last page">&gt;&gt;</button>
     `;
 }

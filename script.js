@@ -180,11 +180,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     elements.leaderboardPagination.addEventListener('click', (e) => {
         const target = e.target;
-        if (target.id === 'prev-page-btn' && leaderboardState.currentPage > 1) {
+        let pageChanged = false;
+        
+        if (target.id === 'first-page-btn' && leaderboardState.currentPage > 1) {
+            leaderboardState.currentPage = 1;
+            pageChanged = true;
+        } else if (target.id === 'prev-page-btn' && leaderboardState.currentPage > 1) {
             leaderboardState.currentPage--;
-            updateLeaderboardView();
+            pageChanged = true;
         } else if (target.id === 'next-page-btn' && leaderboardState.currentPage < leaderboardState.totalPages) {
             leaderboardState.currentPage++;
+            pageChanged = true;
+        } else if (target.id === 'last-page-btn' && leaderboardState.currentPage < leaderboardState.totalPages) {
+            leaderboardState.currentPage = leaderboardState.totalPages;
+            pageChanged = true;
+        }
+
+        if (pageChanged) {
             updateLeaderboardView();
         }
     });
