@@ -75,18 +75,28 @@ export async function fetchLeaderboard(difficulty) {
 
     const rankedPlayers = Object.values(players).map(playerData => {
         const bestGame = playerData.allScores.reduce((best, current) => {
-            return (!best || current.score > best.score) ? current : best;
+            if (!best) return current;
+            if (current.score > best.score) return current;
+            if (current.score === best.score && current.level > best.level) return current;
+            return best;
         }, null);
         
         return {
             username: playerData.username,
             highestScore: bestGame ? bestGame.score : 0,
+            bestLevel: bestGame ? bestGame.level : 0,
             gamesPlayed: playerData.allScores.length,
             bestGameData: bestGame,
-            allScores: playerData.allScores.sort((a,b) => b.score - a.score),
+            allScores: playerData.allScores.sort((a,b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return b.level - a.level;
+            }),
         };
     }).filter(p => p && p.bestGameData)
-      .sort((a, b) => b.highestScore - a.highestScore);
+      .sort((a, b) => {
+          if (b.highestScore !== a.highestScore) return b.highestScore - a.highestScore;
+          return b.bestLevel - a.bestLevel;
+      });
     
     return rankedPlayers;
 }
@@ -95,8 +105,9 @@ export function renderLeaderboard(rankedPlayers) {
     return rankedPlayers.map((player, index) => {
         const scoreListHtml = player.allScores.map((game, scoreIndex) => `
             <div class="score-entry">
-                <div>
+                <div class="score-details">
                     <span class="score-entry-score">Score: ${game.score}</span>
+                    <span class="score-entry-level">Level: ${game.level || 1}</span>
                     <small class="score-entry-date">${new Date(game.timestamp).toLocaleDateString()}</small>
                 </div>
                 <button class="watch-replay-btn" data-index="${index}" data-score-index="${scoreIndex}">Watch</button>
@@ -112,7 +123,10 @@ export function renderLeaderboard(rankedPlayers) {
                         <div class="username">${player.username}</div>
                         <div class="games-played">${player.gamesPlayed} ${player.gamesPlayed === 1 ? 'game' : 'games'}</div>
                     </div>
-                    <div class="score">${player.highestScore}</div>
+                    <div class="score">
+                        <div class="score-value">S: ${player.highestScore}</div>
+                        <div class="level-value">L: ${player.bestLevel}</div>
+                    </div>
                     <button class="watch-replay-btn" data-index="${index}">Watch Best</button>
                 </div>
                 <div class="score-list-container hidden">
