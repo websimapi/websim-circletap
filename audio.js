@@ -40,6 +40,21 @@ export function initAudio() {
     }
 }
 
+export function fadeOutMusic(duration = 0.5) {
+    if (!backgroundMusicGain || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    backgroundMusicGain.gain.cancelScheduledValues(now);
+    // Ramp down to a very small value instead of 0 to avoid potential issues
+    backgroundMusicGain.gain.linearRampToValueAtTime(0.0001, now + duration);
+}
+
+export function fadeInMusic(duration = 1.0) {
+    if (!backgroundMusicGain || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    backgroundMusicGain.gain.cancelScheduledValues(now);
+    backgroundMusicGain.gain.linearRampToValueAtTime(MAX_MUSIC_VOLUME, now + duration);
+}
+
 async function setupBackgroundMusic() {
     if (!audioCtx) initAudio();
     if (!audioCtx || backgroundMusicSource) return;

@@ -2,7 +2,7 @@ import { Game, difficulties } from './game.js';
 import { UIController } from './ui.js';
 import { submitScore, fetchLeaderboard, renderLeaderboardList, renderLeaderboardPagination } from './leaderboard.js';
 import { showReplay, hideReplay } from './replay.js';
-import { playBackgroundMusic } from './audio.js';
+import { playBackgroundMusic, fadeInMusic, fadeOutMusic } from './audio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.replayBtn.addEventListener('click', async () => {
         handleFirstInteraction();
         replayOrigin = 'gameover';
+        fadeOutMusic();
         ui.showReplayContainer();
         
         if (!game.replayConfig.currentUser) {
@@ -106,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.closeReplayBtn.addEventListener('click', () => {
         ui.hideReplayContainer(replayOrigin);
         hideReplay();
+        fadeInMusic();
     });
 
     // Submit score button
@@ -238,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     replayOrigin = 'leaderboard';
+                    fadeOutMusic();
                     elements.leaderboardView.classList.add('hidden');
                     ui.showReplayContainer();
                     showReplay(replayData);
