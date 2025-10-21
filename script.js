@@ -1,6 +1,6 @@
 import { Game, difficulties } from './game.js';
 import { UIController } from './ui.js';
-import { submitScore, fetchLeaderboard, renderLeaderboard } from './leaderboard.js';
+import { submitScore, fetchLeaderboard, renderLeaderboardList, renderLeaderboardPagination } from './leaderboard.js';
 import { showReplay, hideReplay } from './replay.js';
 import { playBackgroundMusic } from './audio.js';
 
@@ -35,13 +35,20 @@ document.addEventListener('DOMContentLoaded', () => {
         closeLeaderboardBtn: document.getElementById('close-leaderboard-btn'),
         leaderboardList: document.getElementById('leaderboard-list'),
         leaderboardDifficultyFilters: document.getElementById('leaderboard-difficulty-filters'),
-        leaderboardFilterBtns: document.querySelectorAll('.leaderboard-filter-btn')
+        leaderboardFilterBtns: document.querySelectorAll('.leaderboard-filter-btn'),
+        leaderboardPagination: document.getElementById('leaderboard-pagination')
     };
 
     const game = new Game(canvas);
     const ui = new UIController(elements);
     let rankedPlayersData = [];
     let replayOrigin = 'gameover'; // 'gameover' or 'leaderboard'
+    let leaderboardState = {
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 10,
+        currentDifficulty: 'easy'
+    };
 
     // Set up game callbacks
     game.onScoreUpdate = (score) => ui.updateScore(score);
@@ -117,9 +124,19 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     });
 
+    async function updateLeaderboardView() {
+        const { currentPage, itemsPerPage } = leaderboardState;
+        elements.leaderboardList.innerHTML = renderLeaderboardList(rankedPlayersData, currentPage, itemsPerPage);
+        elements.leaderboardPagination.innerHTML = renderLeaderboardPagination(leaderboardState.totalPages, currentPage);
+    }
+
     async function loadLeaderboard(difficulty) {
+        leaderboardState.currentDifficulty = difficulty;
+        leaderboardState.currentPage = 1;
+        
         ui.showLeaderboardView();
         elements.leaderboardList.innerHTML = '<p>Loading scores...</p>';
+        ui.hidePagination();
         rankedPlayersData = [];
 
         // Update active button state
@@ -129,15 +146,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             rankedPlayersData = await fetchLeaderboard(difficulty);
-            
+            leaderboardState.totalPages = Math.ceil(rankedPlayersData.length / leaderboardState.itemsPerPage);
+
             if (rankedPlayersData.length === 0) {
                 elements.leaderboardList.innerHTML = `<p>No scores for ${difficulty} difficulty yet. Be the first!</p>`;
+                ui.hidePagination();
             } else {
-                elements.leaderboardList.innerHTML = renderLeaderboard(rankedPlayersData);
+                updateLeaderboardView();
+                ui.showPagination();
             }
         } catch (error) {
             console.error("Error fetching leaderboard:", error);
             elements.leaderboardList.innerHTML = '<p>Could not load leaderboard. Please try again later.</p>';
+            ui.hidePagination();
         }
     }
 
@@ -152,6 +173,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (targetBtn && !targetBtn.classList.contains('active')) {
             const difficulty = targetBtn.dataset.difficulty;
             loadLeaderboard(difficulty);
+        }
+    });
+
+    elements.leaderboardPagination.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target.id === 'prev-page-btn' && leaderboardState.currentPage > 1) {
+            leaderboardState.currentPage--;
+            updateLeaderboardView();
+        } else if (target.id === 'next-page-btn' && leaderboardState.currentPage < leaderboardState.totalPages) {
+            leaderboardState.currentPage++;
+            updateLeaderboardView();
+        }
+    });
+
+    elements.leaderboardPagination.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.id === 'page-input') {
+            let newPage = parseInt(target.value, 10);
+            if (!isNaN(newPage)) {
+                newPage = Math.max(1, Math.min(newPage, leaderboardState.totalPages));
+                leaderboardState.currentPage = newPage;
+                updateLeaderboardView();
+            }
         }
     });
 

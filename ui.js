@@ -100,6 +100,14 @@ export class UIController {
         this.elements.startMenu.classList.remove('hidden');
     }
 
+    showPagination() {
+        this.elements.leaderboardPagination.classList.remove('hidden');
+    }
+
+    hidePagination() {
+        this.elements.leaderboardPagination.classList.add('hidden');
+    }
+
     setSubmitButtonState(state, text) {
         this.elements.submitScoreBtn.disabled = state === 'disabled';
         this.elements.submitScoreBtn.textContent = text;

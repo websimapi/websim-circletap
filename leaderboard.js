@@ -101,8 +101,13 @@ export async function fetchLeaderboard(difficulty) {
     return rankedPlayers;
 }
 
-export function renderLeaderboard(rankedPlayers) {
-    return rankedPlayers.map((player, index) => {
+export function renderLeaderboardList(rankedPlayers, currentPage = 1, itemsPerPage = 10) {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const playersOnPage = rankedPlayers.slice(startIndex, endIndex);
+
+    return playersOnPage.map((player, index) => {
+        const overallIndex = startIndex + index;
         const scoreListHtml = player.allScores.map((game, scoreIndex) => `
             <div class="score-entry">
                 <div class="score-details">
@@ -110,14 +115,14 @@ export function renderLeaderboard(rankedPlayers) {
                     <span class="score-entry-level">Level: ${game.level || 1}</span>
                     <small class="score-entry-date">${new Date(game.timestamp).toLocaleDateString()}</small>
                 </div>
-                <button class="watch-replay-btn" data-index="${index}" data-score-index="${scoreIndex}">Watch</button>
+                <button class="watch-replay-btn" data-index="${overallIndex}" data-score-index="${scoreIndex}">Watch</button>
             </div>
         `).join('');
 
         return `
             <div class="leaderboard-entry-wrapper">
-                <div class="leaderboard-entry" data-index="${index}">
-                    <div class="rank">${index + 1}</div>
+                <div class="leaderboard-entry" data-index="${overallIndex}">
+                    <div class="rank">${overallIndex + 1}</div>
                     <img class="avatar" src="https://images.websim.com/avatar/${player.username}" alt="${player.username}'s avatar">
                     <div class="user-info">
                         <div class="username">${player.username}</div>
@@ -127,7 +132,7 @@ export function renderLeaderboard(rankedPlayers) {
                         <div class="score-value">S: ${player.highestScore}</div>
                         <div class="level-value">L: ${player.bestLevel}</div>
                     </div>
-                    <button class="watch-replay-btn" data-index="${index}">Watch Best</button>
+                    <button class="watch-replay-btn" data-index="${overallIndex}">Watch Best</button>
                 </div>
                 <div class="score-list-container hidden">
                     ${scoreListHtml}
@@ -135,4 +140,18 @@ export function renderLeaderboard(rankedPlayers) {
             </div>
         `
     }).join('');
+}
+
+export function renderLeaderboardPagination(totalPages, currentPage) {
+    if (totalPages <= 1) return '';
+
+    return `
+        <button id="prev-page-btn" ${currentPage === 1 ? 'disabled' : ''}&lt; Prev</button>
+        <div class="page-info">
+            Page 
+            <input type="number" id="page-input" value="${currentPage}" min="1" max="${totalPages}"> 
+            of ${totalPages}
+        </div>
+        <button id="next-page-btn" ${currentPage === totalPages ? 'disabled' : ''}>Next &gt;</button>
+    `;
 }

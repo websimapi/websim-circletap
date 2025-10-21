@@ -300,6 +300,8 @@ button:active {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex-grow: 1; /* Allow list to take up space */
+    min-height: 0; /* For flexbox proper sizing */
 }
 
 .leaderboard-entry-wrapper {
@@ -415,6 +417,45 @@ button:active {
 .score-entry .watch-replay-btn {
     padding: 8px 12px;
     font-size: 0.9rem;
+}
+
+#leaderboard-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding-bottom: 10px; /* Space from bottom of screen */
+    width: 100%;
+    max-width: 600px;
+}
+
+#leaderboard-pagination button {
+    padding: 8px 16px;
+}
+
+#leaderboard-pagination .page-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#leaderboard-pagination input[type="number"] {
+    width: 60px;
+    padding: 8px;
+    font-size: 1rem;
+    text-align: center;
+    border: 1px solid var(--secondary-color);
+    border-radius: 6px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    -moz-appearance: textfield; /* Firefox */
+}
+
+#leaderboard-pagination input[type="number"]::-webkit-outer-spin-button,
+#leaderboard-pagination input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 #close-leaderboard-btn {
