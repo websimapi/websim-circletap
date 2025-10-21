@@ -287,6 +287,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     window.addEventListener('pointerdown', tapHandler);
+    
+    // Spacebar handler
+    const spacebarHandler = (e) => {
+        if (e.code === 'Space') {
+            const focusedElement = document.activeElement;
+            // If an element that expects text input is focused (e.g., the page input), don't trigger game tap.
+            if (
+                focusedElement && 
+                (focusedElement.tagName === 'INPUT' && focusedElement.type !== 'submit' && focusedElement.type !== 'button' && focusedElement.type !== 'reset' || 
+                 focusedElement.tagName === 'TEXTAREA')
+            ) {
+                return;
+            }
+
+            e.preventDefault();
+            handleFirstInteraction();
+            game.handleTap();
+        }
+    };
+    window.addEventListener('keydown', spacebarHandler);
 
     // Window resize
     window.addEventListener('resize', () => game.resizeCanvas());
