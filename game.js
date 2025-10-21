@@ -158,59 +158,60 @@ export class Game {
         if (this.onGameOver) this.onGameOver(this.lastGameData);
     }
 
-    drawVisualizer() {
-        const audioData = getAudioData();
-        if (!audioData) return;
+    drawVisualizer(pulseAmount) {
+        // Only draw if there's a noticeable beat
+        if (pulseAmount <= 0.1) return;
 
         const centerX = this.size / 2;
         const centerY = this.size / 2;
         const outerRadius = this.radius + this.lineWidth / 2;
         const innerRadius = this.radius - this.lineWidth / 2;
 
-        let bass = 0;
-        // Average the first few bins for a bass/kick drum response
-        for (let i = 0; i < 5; i++) {
-            bass += audioData[i];
-        }
-        bass /= 5;
+        const pulseColor = this.currentColorHsl.copy({opacity: pulseAmount * 0.3});
 
-        const pulseAmount = (bass / 255); // Normalize to 0-1
+        // --- Outer Pulse ---
+        const maxOuterPulse = this.lineWidth * 0.8;
+        const pulseOuterRadius = outerRadius + (pulseAmount * maxOuterPulse);
         
-        // Only draw if there's a noticeable beat
-        if (pulseAmount > 0.1) {
-            const pulseColor = this.currentColorHsl.copy({opacity: pulseAmount * 0.3});
+        const outerGradient = this.ctx.createRadialGradient(centerX, centerY, outerRadius, centerX, centerY, pulseOuterRadius);
+        outerGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        outerGradient.addColorStop(0.8, pulseColor.toString());
+        outerGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        this.ctx.fillStyle = outerGradient;
+        this.ctx.fillRect(0, 0, this.size, this.size);
 
-            // --- Outer Pulse ---
-            const maxOuterPulse = this.lineWidth * 0.8;
-            const pulseOuterRadius = outerRadius + (pulseAmount * maxOuterPulse);
-            
-            const outerGradient = this.ctx.createRadialGradient(centerX, centerY, outerRadius, centerX, centerY, pulseOuterRadius);
-            outerGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            outerGradient.addColorStop(0.8, pulseColor.toString());
-            outerGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            this.ctx.fillStyle = outerGradient;
-            this.ctx.fillRect(0, 0, this.size, this.size);
+        // --- Inner Pulse ---
+        const maxInnerPulse = innerRadius * 0.7; // How far the glow goes inward
+        const pulseInnerRadius = innerRadius - (pulseAmount * maxInnerPulse);
 
-            // --- Inner Pulse ---
-            const maxInnerPulse = innerRadius * 0.7; // How far the glow goes inward
-            const pulseInnerRadius = innerRadius - (pulseAmount * maxInnerPulse);
+        const innerGradient = this.ctx.createRadialGradient(centerX, centerY, pulseInnerRadius, centerX, centerY, innerRadius);
+        innerGradient.addColorStop(0, 'rgba(0,0,0,0)');
+        innerGradient.addColorStop(0.5, pulseColor.toString());
+        innerGradient.addColorStop(1, 'rgba(0,0,0,0)');
 
-            const innerGradient = this.ctx.createRadialGradient(centerX, centerY, pulseInnerRadius, centerX, centerY, innerRadius);
-            innerGradient.addColorStop(0, 'rgba(0,0,0,0)');
-            innerGradient.addColorStop(0.5, pulseColor.toString());
-            innerGradient.addColorStop(1, 'rgba(0,0,0,0)');
-
-            this.ctx.fillStyle = innerGradient;
-            this.ctx.fillRect(0, 0, this.size, this.size);
-        }
+        this.ctx.fillStyle = innerGradient;
+        this.ctx.fillRect(0, 0, this.size, this.size);
     }
 
     draw() {
         this.ctx.clearRect(0, 0, this.size, this.size);
 
-        if (this.gameState === 'playing') {
-            this.drawVisualizer();
+        const audioData = getAudioData();
+        let pulseAmount = 0;
+        if (this.gameState === 'playing' && audioData) {
+            let bass = 0;
+            for (let i = 0; i < 5; i++) {
+                bass += audioData[i];
+            }
+            bass /= 5;
+            pulseAmount = (bass / 255);
+            this.drawVisualizer(pulseAmount);
+        }
+
+        const lastFrame = this.replayFrames[this.replayFrames.length-1];
+        if(lastFrame) {
+            lastFrame.pulseAmount = pulseAmount;
         }
 
         this.ctx.save();
@@ -270,6 +271,7 @@ export class Game {
             level: this.level,
             targetColor: this.currentColorHsl.toString(),
             timestamp: currentTime,
+            pulseAmount: 0, // Initial value, will be updated in draw()
         });
 
         this.draw();
