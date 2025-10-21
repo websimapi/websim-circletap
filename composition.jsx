@@ -263,10 +263,11 @@ const EndScreenOverlay = ({ score, level, user, isGameOver }) => {
 };
 const ReplayComposition = ({ replayData }) => {
   const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
   if (!replayData || !replayData.frames || replayData.frames.length < 2) {
     return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: "#1a1a2e", color: "white", justifyContent: "center", alignItems: "center" }, children: "Loading replay..." }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 172,
+      lineNumber: 173,
       columnNumber: 16
     });
   }
@@ -290,47 +291,71 @@ const ReplayComposition = ({ replayData }) => {
   const showEndScreen = frame >= gameEndFrame;
   const isDuringEndScreen = frame >= gameEndFrame && frame < gameEndFrame + 90;
   const successFrames = frames.filter((f) => f.success);
+  const MAX_VOLUME = 0.3;
+  const FADE_DURATION_FRAMES = 15 * fps;
+  let musicVolume;
+  if (durationInFrames <= 2 * FADE_DURATION_FRAMES) {
+    const midPoint = durationInFrames / 2;
+    musicVolume = interpolate(
+      frame,
+      [0, midPoint, durationInFrames],
+      [0, MAX_VOLUME, 0],
+      { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+    );
+  } else {
+    musicVolume = interpolate(
+      frame,
+      [0, FADE_DURATION_FRAMES, durationInFrames - FADE_DURATION_FRAMES, durationInFrames],
+      [0, MAX_VOLUME, MAX_VOLUME, 0],
+      { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+    );
+  }
   return /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { backgroundColor: "#1a1a2e" }, children: [
     !showEndScreen && /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { top: "5vh", justifyContent: "flex-start", alignItems: "center" }, children: /* @__PURE__ */ jsxDEV("div", { style: { fontSize: "clamp(1.5rem, 5vw, 2.5rem)", fontWeight: "bold", color: config.colors.fail.trim(), fontFamily: "Arial, sans-serif" }, children: [
       "Score: ",
       score
     ] }, void 0, true, {
       fileName: "<stdin>",
-      lineNumber: 208,
+      lineNumber: 234,
       columnNumber: 21
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 207,
+      lineNumber: 233,
       columnNumber: 17
     }),
     /* @__PURE__ */ jsxDEV(AbsoluteFill, { style: { justifyContent: "center", alignItems: "center" }, children: [
       /* @__PURE__ */ jsxDEV(LevelDisplay, { level, isVisible: !showEndScreen || isDuringEndScreen }, `level-${level}`, false, {
         fileName: "<stdin>",
-        lineNumber: 216,
+        lineNumber: 242,
         columnNumber: 17
       }),
       /* @__PURE__ */ jsxDEV("div", { style: { width: "90%", height: "auto", aspectRatio: "1 / 1" }, children: /* @__PURE__ */ jsxDEV(GameCanvas, { frameData: currentFrameData, config }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 218,
+        lineNumber: 244,
         columnNumber: 21
       }) }, void 0, false, {
         fileName: "<stdin>",
-        lineNumber: 217,
+        lineNumber: 243,
         columnNumber: 17
       })
     ] }, void 0, true, {
       fileName: "<stdin>",
-      lineNumber: 215,
+      lineNumber: 241,
       columnNumber: 13
     }),
     showEndScreen && /* @__PURE__ */ jsxDEV(EndScreenOverlay, { score, level, user: currentUser, isGameOver }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 223,
+      lineNumber: 249,
       columnNumber: 32
+    }),
+    /* @__PURE__ */ jsxDEV(Audio, { src: "/Infinite Orbit - Track 1 (Extended 2) - Sonauto.ogg", volume: musicVolume, loop: true }, void 0, false, {
+      fileName: "<stdin>",
+      lineNumber: 252,
+      columnNumber: 13
     }),
     /* @__PURE__ */ jsxDEV(Audio, { src: "/start_sound.mp3", volume: 0.5 }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 226,
+      lineNumber: 253,
       columnNumber: 13
     }),
     successFrames.map((f, i) => {
@@ -338,11 +363,11 @@ const ReplayComposition = ({ replayData }) => {
       if (frameForAudio < gameEndFrame) {
         return /* @__PURE__ */ jsxDEV(Sequence, { from: frameForAudio, children: /* @__PURE__ */ jsxDEV(Audio, { src: "/success.mp3" }, void 0, false, {
           fileName: "<stdin>",
-          lineNumber: 234,
+          lineNumber: 261,
           columnNumber: 25
         }) }, `success-${i}`, false, {
           fileName: "<stdin>",
-          lineNumber: 233,
+          lineNumber: 260,
           columnNumber: 22
         });
       }
@@ -350,16 +375,16 @@ const ReplayComposition = ({ replayData }) => {
     }),
     isGameOver && /* @__PURE__ */ jsxDEV(Sequence, { from: gameEndFrame - 1, children: /* @__PURE__ */ jsxDEV(Audio, { src: "/fail.mp3" }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 243,
+      lineNumber: 270,
       columnNumber: 21
     }) }, void 0, false, {
       fileName: "<stdin>",
-      lineNumber: 242,
+      lineNumber: 269,
       columnNumber: 17
     })
   ] }, void 0, true, {
     fileName: "<stdin>",
-    lineNumber: 204,
+    lineNumber: 230,
     columnNumber: 9
   });
 };
