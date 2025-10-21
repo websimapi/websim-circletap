@@ -6,6 +6,14 @@ import { ReplayComposition } from "./composition.jsx";
 const rootElement = document.getElementById("player-root");
 const root = createRoot(rootElement);
 let replayData = null;
+const blobToDataURL = (blob) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 const prefetchAvatar = async (user) => {
   if (!user || !user.avatar_url) {
     return null;
@@ -23,7 +31,7 @@ const prefetchAvatar = async (user) => {
       if (response.ok) {
         const blob = await response.blob();
         if (blob.type.startsWith("image/")) {
-          return URL.createObjectURL(blob);
+          return await blobToDataURL(blob);
         }
       }
     } catch (e) {
@@ -60,7 +68,7 @@ const renderPlayer = async (data) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 51,
+        lineNumber: 60,
         columnNumber: 7
       }
     )

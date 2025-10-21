@@ -199,7 +199,7 @@ export class Game {
 
         const audioData = getAudioData();
         let pulseAmount = 0;
-        if (this.gameState === 'playing' && audioData) {
+        if (audioData) {
             let bass = 0;
             for (let i = 0; i < 5; i++) {
                 bass += audioData[i];

@@ -96,10 +96,10 @@ const GameCanvas = ({ frameData, config }) => {
   const radius = 45;
   const lineWidth = radius * 2 * trackWidthFactor;
   return /* @__PURE__ */ jsxDEV("svg", { viewBox: "-55 -55 110 110", style: { width: "100%", height: "100%" }, children: [
-    pulseAmount && /* @__PURE__ */ jsxDEV(Visualizer, { pulseAmount, targetColor, radius, lineWidth }, void 0, false, {
+    /* @__PURE__ */ jsxDEV(Visualizer, { pulseAmount, targetColor, radius, lineWidth }, void 0, false, {
       fileName: "<stdin>",
       lineNumber: 55,
-      columnNumber: 29
+      columnNumber: 13
     }),
     /* @__PURE__ */ jsxDEV(
       "circle",
