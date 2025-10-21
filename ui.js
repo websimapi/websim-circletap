@@ -81,9 +81,9 @@ export class UIController {
         this.elements.gameOverMenu.classList.add('hidden');
     }
 
-    hideReplayContainer() {
+    hideReplayContainer(origin = 'gameover') {
         this.elements.replayContainer.classList.add('hidden');
-        if (!this.elements.leaderboardView.classList.contains('hidden')) {
+        if (origin === 'leaderboard') {
             this.elements.leaderboardView.classList.remove('hidden');
         } else {
             this.elements.gameOverMenu.classList.remove('hidden');

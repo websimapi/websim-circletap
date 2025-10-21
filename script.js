@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const game = new Game(canvas);
     const ui = new UIController(elements);
     let rankedPlayersData = [];
+    let replayOrigin = 'gameover'; // 'gameover' or 'leaderboard'
 
     // Set up game callbacks
     game.onScoreUpdate = (score) => ui.updateScore(score);
@@ -76,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Replay button
     elements.replayBtn.addEventListener('click', async () => {
         handleFirstInteraction();
+        replayOrigin = 'gameover';
         ui.showReplayContainer();
         
         if (!game.replayConfig.currentUser) {
@@ -95,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     elements.closeReplayBtn.addEventListener('click', () => {
-        ui.hideReplayContainer();
+        ui.hideReplayContainer(replayOrigin);
         hideReplay();
     });
 
@@ -191,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
                     }
 
+                    replayOrigin = 'leaderboard';
                     elements.leaderboardView.classList.add('hidden');
                     ui.showReplayContainer();
                     showReplay(replayData);
