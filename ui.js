@@ -2,6 +2,7 @@ export class UIController {
     constructor(elements) {
         this.elements = elements;
         this.levelFadeTimeout = null;
+        this.gameOverButtonTimeout = null;
     }
 
     showStartMenu() {
@@ -9,6 +10,7 @@ export class UIController {
         this.elements.gameOverMenu.classList.add('hidden');
         this.elements.scoreDisplay.classList.add('hidden');
         this.elements.levelDisplay.classList.add('hidden');
+        this.clearTimeouts(); // Clear any pending timeouts
         this.elements.submitScoreBtn.disabled = false;
         this.elements.submitScoreBtn.textContent = 'To Submit';
     }
@@ -31,9 +33,17 @@ export class UIController {
         this.elements.scoreDisplay.classList.add('hidden');
         this.elements.levelDisplay.classList.remove('level-in', 'level-out');
         this.elements.finalScoreEl.textContent = score;
-        this.elements.submitScoreBtn.disabled = false;
+        
+        const gameOverButtons = this.elements.gameOverMenu.querySelectorAll('button');
+        gameOverButtons.forEach(btn => btn.disabled = true);
+
+        // Reset submit button text before it appears
         this.elements.submitScoreBtn.textContent = 'To Submit';
         
+        this.gameOverButtonTimeout = setTimeout(() => {
+            gameOverButtons.forEach(btn => btn.disabled = false);
+        }, 600); // 1.5 second delay
+
         this.levelFadeTimeout = setTimeout(() => {
             this.elements.levelDisplay.classList.add('hidden');
         }, 3000);
@@ -117,6 +127,10 @@ export class UIController {
         if (this.levelFadeTimeout) {
             clearTimeout(this.levelFadeTimeout);
             this.levelFadeTimeout = null;
+        }
+        if (this.gameOverButtonTimeout) {
+            clearTimeout(this.gameOverButtonTimeout);
+            this.gameOverButtonTimeout = null;
         }
     }
 }
