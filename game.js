@@ -1,6 +1,23 @@
 import { hsl } from 'd3-color';
 import { getHslStringForLevel, isAngleInArc, getComputedColors } from './utils.js';
 import { initAudio, playSuccess, playFail, playStart, getAudioData } from './audio.js';
+import { submitScore } from './leaderboard.js'; // This seems unused, but let's keep it in case it's needed elsewhere
+
+// A simplified interface to the LocalStorageSync class in leaderboard.js
+const localScoreManager = {
+    addScore: (gameData) => {
+        try {
+            const key = 'circleTapPendingScores';
+            const pendingScores = JSON.parse(localStorage.getItem(key)) || [];
+            if (!pendingScores.some(s => s.timestamp === gameData.timestamp)) {
+                pendingScores.push(gameData);
+                localStorage.setItem(key, JSON.stringify(pendingScores));
+            }
+        } catch (e) {
+            console.error("Failed to save score locally:", e);
+        }
+    }
+};
 
 export const difficulties = {
     easy: { speed: 1.2 * Math.PI, size: 0.4, trackWidthFactor: 0.12 }, 
@@ -154,6 +171,9 @@ export class Game {
             },
             timestamp: new Date().toISOString(),
         };
+
+        // Save to local storage immediately, just in case
+        localScoreManager.addScore(this.lastGameData);
 
         if (this.onGameOver) this.onGameOver(this.lastGameData);
     }

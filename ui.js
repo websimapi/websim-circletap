@@ -19,7 +19,6 @@ export class UIController {
         this.elements.startMenu.classList.add('hidden');
         this.elements.gameOverMenu.classList.add('hidden');
         this.elements.scoreDisplay.classList.remove('hidden');
-        this.elements.levelDisplay.classList.remove('hidden');
         this.elements.levelDisplay.classList.remove('level-out', 'level-in');
         // Force reflow to ensure animation triggers
         void this.elements.levelDisplay.offsetWidth;
@@ -42,7 +41,7 @@ export class UIController {
         
         this.gameOverButtonTimeout = setTimeout(() => {
             gameOverButtons.forEach(btn => btn.disabled = false);
-        }, 600); // 1.5 second delay
+        }, 800); // 0.8 second delay
 
         this.levelFadeTimeout = setTimeout(() => {
             this.elements.levelDisplay.classList.add('hidden');

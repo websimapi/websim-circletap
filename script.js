@@ -1,6 +1,6 @@
 import { Game, difficulties } from './game.js';
 import { UIController } from './ui.js';
-import { submitScore, fetchLeaderboard, renderLeaderboardList, renderLeaderboardPagination } from './leaderboard.js';
+import { submitScore, fetchLeaderboard, renderLeaderboardList, renderLeaderboardPagination, syncScores, migrateUserScores } from './leaderboard.js';
 import { showReplay, hideReplay } from './replay.js';
 import { playBackgroundMusic, fadeInMusic, fadeOutMusic } from './audio.js';
 
@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const game = new Game(canvas);
     const ui = new UIController(elements);
     let rankedPlayersData = [];
+    let allDifficultiesData = { easy: null, medium: null, hard: null }; // Cache for 'My Scores'
+    let isMyScoresActive = false;
+    let currentUser = null;
     let replayOrigin = 'gameover'; // 'gameover' or 'leaderboard'
     let leaderboardState = {
         currentPage: 1,
@@ -128,12 +131,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateLeaderboardView() {
         const { currentPage, itemsPerPage } = leaderboardState;
-        elements.leaderboardList.innerHTML = renderLeaderboardList(rankedPlayersData, currentPage, itemsPerPage);
-        elements.leaderboardPagination.innerHTML = renderLeaderboardPagination(leaderboardState.totalPages, currentPage);
+        let dataToRender = rankedPlayersData;
+        
+        if (isMyScoresActive && currentUser) {
+            const myData = rankedPlayersData.find(p => p.username === currentUser.username);
+            dataToRender = myData ? [myData] : [];
+        }
+
+        elements.leaderboardList.innerHTML = renderLeaderboardList(dataToRender, currentPage, itemsPerPage);
+        
+        const totalPages = Math.ceil(dataToRender.length / itemsPerPage);
+        leaderboardState.totalPages = totalPages;
+
+        if (totalPages > 1) {
+            elements.leaderboardPagination.innerHTML = renderLeaderboardPagination(totalPages, currentPage);
+            ui.showPagination();
+        } else {
+            ui.hidePagination();
+        }
     }
 
     async function loadLeaderboard(difficulty) {
         leaderboardState.currentDifficulty = difficulty;
+        isMyScoresActive = false; // Reset 'My Scores' view when changing difficulty
         leaderboardState.currentPage = 1;
         
         ui.showLeaderboardView();
@@ -145,9 +165,17 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.leaderboardFilterBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.difficulty === difficulty);
         });
+        document.getElementById('my-scores-btn').classList.remove('active');
 
         try {
-            rankedPlayersData = await fetchLeaderboard(difficulty);
+            // Use cached data if available
+            if (allDifficultiesData[difficulty]) {
+                rankedPlayersData = allDifficultiesData[difficulty];
+            } else {
+                rankedPlayersData = await fetchLeaderboard(difficulty);
+                allDifficultiesData[difficulty] = rankedPlayersData; // Cache it
+            }
+            
             leaderboardState.totalPages = Math.ceil(rankedPlayersData.length / leaderboardState.itemsPerPage);
 
             if (rankedPlayersData.length === 0) {
@@ -167,13 +195,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // Leaderboard button
     elements.leaderboardBtn.addEventListener('click', async () => {
         handleFirstInteraction();
+        syncScores(); // Sync scores when leaderboard is opened
         loadLeaderboard('easy'); // Default to easy
     });
 
-    elements.leaderboardDifficultyFilters.addEventListener('click', (e) => {
+    elements.leaderboardDifficultyFilters.addEventListener('click', async (e) => {
         const targetBtn = e.target.closest('.leaderboard-filter-btn');
-        if (targetBtn && !targetBtn.classList.contains('active')) {
-            const difficulty = targetBtn.dataset.difficulty;
+        if (!targetBtn || targetBtn.classList.contains('active')) return;
+        
+        const difficulty = targetBtn.dataset.difficulty;
+
+        if (difficulty === 'mine') {
+            isMyScoresActive = true;
+            leaderboardState.currentPage = 1;
+            
+            // Set active states
+            elements.leaderboardFilterBtns.forEach(btn => btn.classList.remove('active'));
+            targetBtn.classList.add('active');
+            
+            if (!currentUser) {
+                try {
+                    currentUser = await window.websim.getCurrentUser();
+                } catch {
+                     elements.leaderboardList.innerHTML = `<p>Could not verify user. Please try again.</p>`;
+                     return;
+                }
+            }
+
+            // Load data for current difficulty if not already loaded
+            if (!allDifficultiesData[leaderboardState.currentDifficulty]) {
+                await loadLeaderboard(leaderboardState.currentDifficulty);
+                // After loading, re-apply the "My Scores" filter
+                elements.leaderboardFilterBtns.forEach(btn => btn.classList.remove('active'));
+                targetBtn.classList.add('active');
+            }
+            
+            updateLeaderboardView();
+            
+        } else if (!targetBtn.classList.contains('active')) {
             loadLeaderboard(difficulty);
         }
     });
@@ -313,4 +372,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial setup
     game.reset();
+    migrateUserScores();
 });
