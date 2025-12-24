@@ -309,6 +309,12 @@ export async function fetchLeaderboard(difficulty) {
     return rankedPlayers;
 }
 
+function getOrdinal(n) {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 export function renderLeaderboardList(rankedPlayers, currentPage = 1, itemsPerPage = 10) {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -316,6 +322,10 @@ export function renderLeaderboardList(rankedPlayers, currentPage = 1, itemsPerPa
 
     return playersOnPage.map((player, index) => {
         const overallIndex = startIndex + index;
+        const rank = overallIndex + 1;
+        const rankText = getOrdinal(rank);
+        const watchIcon = `<svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M8 5v14l11-7z"/></svg>`;
+
         const scoreListHtml = player.allScores.map((game, scoreIndex) => `
             <div class="score-entry">
                 <div class="score-details">
@@ -323,24 +333,26 @@ export function renderLeaderboardList(rankedPlayers, currentPage = 1, itemsPerPa
                     <span class="score-entry-level">Level: ${game.level || 1}</span>
                     <small class="score-entry-date">${new Date(game.timestamp).toLocaleDateString()}</small>
                 </div>
-                <button class="watch-replay-btn" data-index="${overallIndex}" data-score-index="${scoreIndex}">Watch</button>
+                <button class="watch-replay-btn icon-only" data-index="${overallIndex}" data-score-index="${scoreIndex}" title="Watch Replay">${watchIcon}</button>
             </div>
         `).join('');
 
         return `
             <div class="leaderboard-entry-wrapper">
                 <div class="leaderboard-entry" data-index="${overallIndex}">
-                    <div class="rank">${overallIndex + 1}</div>
-                    <img class="avatar" src="https://images.websim.com/avatar/${player.username}" alt="${player.username}'s avatar">
+                    <div class="avatar-wrapper rank-${rank <= 3 ? rank : 'other'}">
+                        <img class="avatar" src="https://images.websim.com/avatar/${player.username}" alt="${player.username}'s avatar">
+                        <div class="rank-badge">${rankText}</div>
+                    </div>
                     <div class="user-info">
                         <div class="username">${player.username}</div>
                         <div class="games-played">${player.gamesPlayed} ${player.gamesPlayed === 1 ? 'game' : 'games'}</div>
                     </div>
                     <div class="score">
-                        <div class="score-value">S: ${player.highestScore}</div>
-                        <div class="level-value">L: ${player.bestLevel}</div>
+                        <div class="score-value">Score: ${player.highestScore}</div>
+                        <div class="level-value">Level: ${player.bestLevel}</div>
                     </div>
-                    <button class="watch-replay-btn" data-index="${overallIndex}">Watch Best</button>
+                    <button class="watch-replay-btn icon-only" data-index="${overallIndex}" title="Watch Best Replay">${watchIcon}</button>
                 </div>
                 <div class="score-list-container hidden">
                     ${scoreListHtml}

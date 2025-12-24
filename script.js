@@ -334,8 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (playerData && gameData && gameData.replayDataUrl) {
                 try {
-                    const originalText = watchBtn.textContent;
-                    watchBtn.textContent = 'Loading...';
+                    const originalHtml = watchBtn.innerHTML;
+                    watchBtn.innerHTML = '<span style="font-size: 0.6rem;">...</span>'; 
                     watchBtn.disabled = true;
 
                     const response = await fetch(gameData.replayDataUrl);
@@ -357,15 +357,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     ui.showReplayContainer();
                     showReplay(replayData);
                     
-                    watchBtn.textContent = originalText;
+                    watchBtn.innerHTML = originalHtml;
                     watchBtn.disabled = false;
 
                 } catch (fetchError) {
                     console.error("Error fetching replay data:", fetchError);
                     alert("Could not load replay.");
-                    watchBtn.textContent = 'Failed';
+                    watchBtn.innerHTML = '<span style="font-size: 0.6rem;">X</span>';
                     setTimeout(() => {
-                        watchBtn.textContent = 'Watch';
+                        watchBtn.innerHTML = originalHtml;
                         watchBtn.disabled = false;
                     }, 2000);
                 }
