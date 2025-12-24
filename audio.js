@@ -2,6 +2,7 @@ let audioCtx;
 let successSound, failSound, startSound;
 let backgroundMusicSource;
 let backgroundMusicGain;
+let musicMuteGain;
 let analyser;
 let isMusicPlaying = false;
 
@@ -71,11 +72,15 @@ async function setupBackgroundMusic() {
         backgroundMusicGain = audioCtx.createGain();
         backgroundMusicGain.gain.value = 0; // Start at 0 volume
 
+        musicMuteGain = audioCtx.createGain();
+        musicMuteGain.gain.value = 1;
+
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256; // Lower size for performance is fine for this use case
 
         backgroundMusicSource.connect(backgroundMusicGain);
-        backgroundMusicGain.connect(analyser);
+        backgroundMusicGain.connect(musicMuteGain);
+        musicMuteGain.connect(analyser);
         analyser.connect(audioCtx.destination);
     } catch (e) {
         console.error("Error loading background music:", e);
@@ -154,4 +159,12 @@ export function playFail() {
 
 export function playStart() {
     if (startSound) startSound();
+}
+
+export function toggleMute(muted) {
+    if (musicMuteGain && audioCtx) {
+        const now = audioCtx.currentTime;
+        musicMuteGain.gain.cancelScheduledValues(now);
+        musicMuteGain.gain.setValueAtTime(muted ? 0 : 1, now);
+    }
 }

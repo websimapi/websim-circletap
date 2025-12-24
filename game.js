@@ -56,10 +56,26 @@ export class Game {
         this.currentColorHsl = hsl(getHslStringForLevel(1));
         this.targetColorHsl = hsl(getHslStringForLevel(1));
         this.lastGameData = {};
+        this.failTap = null;
 
         this.onGameOver = null;
         this.onScoreUpdate = null;
         this.onLevelUp = null;
+
+        // Start idle animation loop
+        this.lastFrameTime = performance.now();
+        this.gameLoop(this.lastFrameTime);
+    }
+
+    setDifficulty(difficulty) {
+        this.currentDifficulty = difficulty;
+        this.targetSize = difficulties[difficulty].size;
+        this.speed = difficulties[difficulty].speed;
+        this.resizeCanvas();
+        // Generate a random target for visual flair in menu
+        if (this.gameState === 'start') {
+            this.generateNewTarget();
+        }
     }
 
     resizeCanvas() {
@@ -67,23 +83,13 @@ export class Game {
         const parentWidth = parent.offsetWidth;
         const parentHeight = parent.offsetHeight;
 
-        let containerSize;
-
-        // On landscape screens (like desktop), we want to simulate a portrait container
-        // to keep the game feel consistent with mobile and fit for vertical video.
-        if (parentWidth > parentHeight) {
-            // Simulate a 9:16 aspect ratio container within the height of the screen.
-            const simulatedWidth = parentHeight * (9 / 16);
-            // If the simulated width is wider than the actual screen, just use the screen width.
-            // Otherwise, use the simulated width. This creates a virtual "phone screen" area.
-            containerSize = Math.min(simulatedWidth, parentWidth);
-        } else {
-            // On portrait screens (mobile), the width is the limiting factor.
-            containerSize = parentWidth;
-        }
-
-        // Apply a scaling factor to the container size to determine the final canvas size.
-        const canvasSize = containerSize * 0.9;
+        // Determine the smallest dimension to ensure the circle fits
+        // This is flexible for both portrait (mobile) and landscape (desktop/inline) views,
+        // maximizing the game size within the context.
+        const minDimension = Math.min(parentWidth, parentHeight);
+        
+        // Use a large portion of the available smallest dimension
+        const canvasSize = minDimension * 0.9;
         
         this.canvas.style.width = `${canvasSize}px`;
         this.canvas.style.height = `${canvasSize}px`;
@@ -122,6 +128,7 @@ export class Game {
         this.level = 1; // Start at level 1, not 0
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = 1;
+        this.failTap = null;
         
         this.currentColorHsl = hsl(getHslStringForLevel(1));
         this.targetColorHsl = hsl(getHslStringForLevel(1));
@@ -135,20 +142,15 @@ export class Game {
             difficulties,
             colors: this.colors,
         };
-
-        this.lastFrameTime = performance.now();
-        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-        this.animationFrameId = requestAnimationFrame((t) => this.gameLoop(t));
-
+        
+        // Loop continues, just state update
         if (this.onScoreUpdate) this.onScoreUpdate(this.score);
-        if (this.onLevelUp) this.onLevelUp(this.level, true); // Pass true to indicate initial level
+        if (this.onLevelUp) this.onLevelUp(this.level, true); 
     }
 
     gameOver() {
         playFail();
         this.gameState = 'gameover';
-        
-        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
         
         this.replayFrames.push({
             angle: this.angle,
@@ -255,6 +257,45 @@ export class Game {
             this.ctx.stroke();
         }
 
+        // Draw fail tap indicator
+        if (this.failTap) {
+            const age = (performance.now() - this.failTap.timestamp) / 1000;
+            if (age < 3) {
+                const opacity = Math.max(0, 1 - (age / 3));
+                const failColor = hsl(this.colors.fail);
+                failColor.opacity = opacity;
+                const failColorStr = failColor.toString();
+
+                this.ctx.save();
+                this.ctx.rotate(this.failTap.angle);
+                
+                // Ghost cursor line
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.radius - this.lineWidth / 2, 0);
+                this.ctx.lineTo(this.radius + this.lineWidth / 2, 0);
+                this.ctx.strokeStyle = failColorStr;
+                this.ctx.lineWidth = this.lineWidth / 2.5;
+                this.ctx.lineCap = 'butt';
+                this.ctx.stroke();
+
+                // 'X' mark for clarity
+                const xSize = this.lineWidth * 0.4;
+                this.ctx.translate(this.radius, 0);
+                this.ctx.beginPath();
+                this.ctx.moveTo(-xSize, -xSize);
+                this.ctx.lineTo(xSize, xSize);
+                this.ctx.moveTo(xSize, -xSize);
+                this.ctx.lineTo(-xSize, xSize);
+                this.ctx.strokeStyle = failColorStr;
+                this.ctx.lineWidth = Math.max(2, this.size * 0.005);
+                this.ctx.stroke();
+
+                this.ctx.restore();
+            } else {
+                this.failTap = null;
+            }
+        }
+
         // Draw rotating line
         this.ctx.rotate(this.angle);
         this.ctx.beginPath();
@@ -269,8 +310,6 @@ export class Game {
     }
 
     gameLoop(currentTime) {
-        if (this.gameState !== 'playing') return;
-
         const deltaTime = (currentTime - this.lastFrameTime) / 1000;
         this.lastFrameTime = currentTime;
 
@@ -281,18 +320,24 @@ export class Game {
         this.currentColorHsl.l += (this.targetColorHsl.l - this.currentColorHsl.l) * lerpFactor;
         this.currentColorHsl.opacity += (this.targetColorHsl.opacity - this.currentColorHsl.opacity) * lerpFactor;
 
-        this.angle += this.speed * this.direction * deltaTime;
-        
-        this.replayFrames.push({
-            angle: this.angle,
-            targetStartAngle: this.targetStartAngle,
-            targetSize: this.targetSize,
-            score: this.score,
-            level: this.level,
-            targetColor: this.currentColorHsl.toString(),
-            timestamp: currentTime,
-            pulseAmount: 0, // Initial value, will be updated in draw()
-        });
+        if (this.gameState === 'playing') {
+            this.angle += this.speed * this.direction * deltaTime;
+            
+            this.replayFrames.push({
+                angle: this.angle,
+                targetStartAngle: this.targetStartAngle,
+                targetSize: this.targetSize,
+                score: this.score,
+                level: this.level,
+                targetColor: this.currentColorHsl.toString(),
+                timestamp: currentTime,
+                pulseAmount: 0,
+            });
+        } else if (this.gameState === 'start' || this.gameState === 'gameover') {
+            // Idle spin
+            const idleSpeed = difficulties[this.currentDifficulty].speed;
+            this.angle += idleSpeed * deltaTime;
+        }
 
         this.draw();
         this.animationFrameId = requestAnimationFrame((t) => this.gameLoop(t));
@@ -329,6 +374,10 @@ export class Game {
             
             if (this.onScoreUpdate) this.onScoreUpdate(this.score);
         } else {
+            this.failTap = {
+                angle: this.angle,
+                timestamp: performance.now()
+            };
             this.gameOver();
         }
     }
@@ -344,16 +393,22 @@ export class Game {
     }
 
     reset() {
-        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
         this.gameState = 'start';
         this.score = 0;
         this.level = 1;
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = 1;
+        this.failTap = null;
         this.currentColorHsl = hsl(getHslStringForLevel(1));
-        this.targetSize = difficulties[this.currentDifficulty].size;
-        this.targetStartAngle = Math.PI / 4;
+        
+        // Update visual state for idle mode
+        this.setDifficulty(this.currentDifficulty);
         this.angle = -Math.PI / 2;
-        this.resizeCanvas();
+        
+        // Ensure loop is running
+        if (!this.animationFrameId) {
+            this.lastFrameTime = performance.now();
+            this.gameLoop(this.lastFrameTime);
+        }
     }
 }

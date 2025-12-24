@@ -2,7 +2,7 @@ import { Game, difficulties } from './game.js';
 import { UIController } from './ui.js';
 import { submitScore, fetchLeaderboard, renderLeaderboardList, renderLeaderboardPagination, syncScores, migrateUserScores } from './leaderboard.js';
 import { showReplay, hideReplay } from './replay.js';
-import { playBackgroundMusic, fadeInMusic, fadeOutMusic } from './audio.js';
+import { playBackgroundMusic, fadeInMusic, fadeOutMusic, toggleMute } from './audio.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
@@ -23,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startMenu: document.getElementById('start-menu'),
         gameOverMenu: document.getElementById('game-over-menu'),
         finalScoreEl: document.getElementById('final-score'),
-        restartBtn: document.getElementById('restart-btn'),
         homeBtn: document.getElementById('home-btn'),
         difficultyBtns: document.querySelectorAll('.difficulty-btn'),
         replayBtn: document.getElementById('replay-btn'),
@@ -36,7 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
         leaderboardList: document.getElementById('leaderboard-list'),
         leaderboardDifficultyFilters: document.getElementById('leaderboard-difficulty-filters'),
         leaderboardFilterBtns: document.querySelectorAll('.leaderboard-filter-btn'),
-        leaderboardPagination: document.getElementById('leaderboard-pagination')
+        leaderboardPagination: document.getElementById('leaderboard-pagination'),
+        musicToggleBtn: document.getElementById('music-toggle-btn'),
+        tapToRestart: document.getElementById('tap-to-restart')
     };
 
     const game = new Game(canvas);
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsPerPage: 10,
         currentDifficulty: 'easy'
     };
+    let currentDifficulty = 'easy';
 
     // Set up game callbacks
     game.onScoreUpdate = (score) => ui.updateScore(score);
@@ -60,21 +62,40 @@ document.addEventListener('DOMContentLoaded', () => {
         ui.showGameOverMenu(gameData.score);
     };
 
-    // Difficulty selection
-    elements.difficultyBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            handleFirstInteraction();
-            game.start(btn.dataset.difficulty);
-            ui.showGameScreen();
+    // Difficulty Selection
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent bubbling to start menu
+            handleFirstInteraction(); // Start audio on difficulty select
+            const difficulty = btn.dataset.difficulty;
+            currentDifficulty = difficulty;
+            ui.updateDifficulty(difficulty);
+            game.setDifficulty(difficulty); // Update visuals
         });
     });
 
-    // Restart button
-    elements.restartBtn.addEventListener('click', () => {
-        ui.clearTimeouts(); // Clear any pending timeouts from the previous game over screen
+    // Tap to Start
+    elements.startMenu.addEventListener('click', (e) => {
+        // Prevent starting if clicking on difficulty buttons (just in case stopPropagation fails or structure changes)
+        if (e.target.closest('.difficulty-selector')) return;
+        
+        handleFirstInteraction();
+        game.start(currentDifficulty);
+        ui.showGameScreen();
+    });
+
+    // Game Over Menu Tap to Restart
+    elements.gameOverMenu.addEventListener('click', (e) => {
+        // Don't trigger if clicking buttons or interactions inside
+        if (e.target.closest('button') || e.target.closest('.difficulty-selector')) return;
+        
+        // Prevent accidental restart if text is not visible yet
+        if (elements.tapToRestart && elements.tapToRestart.style.opacity === '0') return;
+
+        ui.clearTimeouts();
         game.reset();
         ui.showGameScreen();
-        game.start(game.currentDifficulty);
+        game.start(currentDifficulty);
     });
 
     // Home button
@@ -123,10 +144,30 @@ document.addEventListener('DOMContentLoaded', () => {
             () => {
                 ui.setSubmitButtonState('disabled', 'Error!');
                 setTimeout(() => {
-                    ui.setSubmitButtonState('enabled', 'To Submit');
+                    ui.setSubmitButtonState('enabled', 'Submit Score');
                 }, 2000);
             }
         );
+    });
+
+    // Music Toggle
+    let isMuted = false;
+    elements.musicToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Don't trigger game tap
+        handleFirstInteraction(); // Ensure audio context is ready
+        isMuted = !isMuted;
+        toggleMute(isMuted);
+        
+        const onIcon = elements.musicToggleBtn.querySelector('.volume-on');
+        const offIcon = elements.musicToggleBtn.querySelector('.volume-off');
+        
+        if (isMuted) {
+            onIcon.classList.add('hidden');
+            offIcon.classList.remove('hidden');
+        } else {
+            onIcon.classList.remove('hidden');
+            offIcon.classList.add('hidden');
+        }
     });
 
     async function updateLeaderboardView() {
@@ -340,6 +381,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tap handler
     const tapHandler = (e) => {
+        // Prevent game tap if clicking music toggle
+        if (e.target.closest('#music-toggle-btn')) return;
+
         if (e.target.tagName !== 'BUTTON') {
             e.preventDefault();
             game.handleTap();
@@ -367,10 +411,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     window.addEventListener('keydown', spacebarHandler);
 
+    // Responsive UI Scaling
+    const updateUIScale = () => {
+        const minDim = Math.min(window.innerWidth, window.innerHeight);
+        // Base scale on a reference dimension of 450px
+        // Allow it to scale down to 0.6 (small inline) and up to 1.2 (desktop)
+        const scale = Math.min(Math.max(minDim / 450, 0.6), 1.2);
+        document.documentElement.style.setProperty('--ui-scale', scale);
+    };
+
     // Window resize
-    window.addEventListener('resize', () => game.resizeCanvas());
+    window.addEventListener('resize', () => {
+        game.resizeCanvas();
+        updateUIScale();
+    });
 
     // Initial setup
+    updateUIScale();
     game.reset();
+    ui.updateDifficulty(currentDifficulty);
+    game.setDifficulty(currentDifficulty);
     migrateUserScores();
 });
