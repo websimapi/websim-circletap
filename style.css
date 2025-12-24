@@ -168,10 +168,12 @@ html, body {
 
 #score-display {
     position: absolute;
-    top: 5vh;
-    font-size: calc(2.5rem * var(--ui-scale));
+    top: 20px;
+    left: 20px;
+    font-size: calc(2.2rem * var(--ui-scale));
     font-weight: bold;
     color: var(--accent-color);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 #level-display {
