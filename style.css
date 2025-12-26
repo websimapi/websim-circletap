@@ -755,10 +755,9 @@ button:active {
     animation: bounceOut 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
 }
 
-#music-toggle-btn {
+#music-toggle-btn, #start-leaderboard-btn {
     position: absolute;
     bottom: 20px;
-    right: 20px;
     background: rgba(0,0,0,0.3);
     border: none;
     border-radius: 50%;
@@ -774,7 +773,16 @@ button:active {
     transition: background-color 0.3s;
 }
 
-#music-toggle-btn:hover {
+#music-toggle-btn {
+    right: 20px;
+}
+
+#start-leaderboard-btn {
+    left: 20px;
+    pointer-events: auto;
+}
+
+#music-toggle-btn:hover, #start-leaderboard-btn:hover {
     background: rgba(0,0,0,0.5);
 }
 

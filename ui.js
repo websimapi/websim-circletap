@@ -29,6 +29,7 @@ export class UIController {
     }
 
     showGameOverMenu(score) {
+        this.elements.startMenu.classList.add('hidden');
         this.elements.gameOverMenu.classList.remove('hidden');
         this.elements.scoreDisplay.classList.add('hidden');
         this.elements.levelDisplay.classList.remove('level-in', 'level-out');
@@ -121,12 +122,17 @@ export class UIController {
 
     showLeaderboardView() {
         this.elements.startMenu.classList.add('hidden');
+        this.elements.gameOverMenu.classList.add('hidden');
         this.elements.leaderboardView.classList.remove('hidden');
     }
 
-    hideLeaderboardView() {
+    hideLeaderboardView(origin = 'start') {
         this.elements.leaderboardView.classList.add('hidden');
-        this.elements.startMenu.classList.remove('hidden');
+        if (origin === 'gameover') {
+            this.elements.gameOverMenu.classList.remove('hidden');
+        } else {
+            this.elements.startMenu.classList.remove('hidden');
+        }
     }
 
     showPagination() {

@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isMyScoresActive = false;
     let currentUser = null;
     let replayOrigin = 'gameover'; // 'gameover' or 'leaderboard'
+    let leaderboardOrigin = 'start';
     let leaderboardState = {
         currentPage: 1,
         totalPages: 1,
@@ -235,10 +236,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Leaderboard button
     elements.leaderboardBtn.addEventListener('click', async () => {
+        leaderboardOrigin = 'gameover';
         handleFirstInteraction();
         syncScores(); // Sync scores when leaderboard is opened
         loadLeaderboard('easy'); // Default to easy
     });
+
+    const startLeaderboardBtn = document.getElementById('start-leaderboard-btn');
+    if (startLeaderboardBtn) {
+        startLeaderboardBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            leaderboardOrigin = 'start';
+            handleFirstInteraction();
+            syncScores();
+            loadLeaderboard('easy');
+        });
+    }
 
     elements.leaderboardDifficultyFilters.addEventListener('click', async (e) => {
         const targetBtn = e.target.closest('.leaderboard-filter-btn');
@@ -314,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     elements.closeLeaderboardBtn.addEventListener('click', () => {
-        ui.hideLeaderboardView();
+        ui.hideLeaderboardView(leaderboardOrigin);
     });
 
     // Leaderboard replay buttons
