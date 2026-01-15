@@ -3,6 +3,7 @@ let successSound, failSound, startSound;
 let backgroundMusicSource;
 let backgroundMusicGain;
 let musicMuteGain;
+let sfxGain;
 let analyser;
 let isMusicPlaying = false;
 
@@ -21,11 +22,16 @@ export function initAudio() {
                 .then(buffer => audioCtx.decodeAudioData(buffer));
         };
 
+        // Create master gain for SFX
+        sfxGain = audioCtx.createGain();
+        sfxGain.gain.value = 1;
+        sfxGain.connect(audioCtx.destination);
+
         const createSoundPlayer = (buffer) => () => {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             const source = audioCtx.createBufferSource();
             source.buffer = buffer;
-            source.connect(audioCtx.destination);
+            source.connect(sfxGain);
             source.start(0);
         };
 
@@ -78,10 +84,12 @@ async function setupBackgroundMusic() {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256; // Lower size for performance is fine for this use case
 
+        // Reroute for visualizer to work when muted
+        // Source -> FadeGain -> Analyser -> MuteGain -> Destination
         backgroundMusicSource.connect(backgroundMusicGain);
-        backgroundMusicGain.connect(musicMuteGain);
-        musicMuteGain.connect(analyser);
-        analyser.connect(audioCtx.destination);
+        backgroundMusicGain.connect(analyser);
+        analyser.connect(musicMuteGain);
+        musicMuteGain.connect(audioCtx.destination);
     } catch (e) {
         console.error("Error loading background music:", e);
     }
@@ -161,10 +169,18 @@ export function playStart() {
     if (startSound) startSound();
 }
 
-export function toggleMute(muted) {
+export function setMusicMuted(muted) {
     if (musicMuteGain && audioCtx) {
         const now = audioCtx.currentTime;
         musicMuteGain.gain.cancelScheduledValues(now);
         musicMuteGain.gain.setValueAtTime(muted ? 0 : 1, now);
+    }
+}
+
+export function setSFXMuted(muted) {
+    if (sfxGain && audioCtx) {
+        const now = audioCtx.currentTime;
+        sfxGain.gain.cancelScheduledValues(now);
+        sfxGain.gain.setValueAtTime(muted ? 0 : 1, now);
     }
 }

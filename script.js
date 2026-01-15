@@ -2,7 +2,7 @@ import { Game } from './game.js';
 import { UIController } from './ui.js';
 import { submitScore, migrateUserScores } from './leaderboard-api.js';
 import { showReplay, hideReplay } from './replay.js';
-import { playBackgroundMusic, fadeInMusic, fadeOutMusic, toggleMute } from './audio.js';
+import { playBackgroundMusic, fadeInMusic, fadeOutMusic, setMusicMuted, setSFXMuted } from './audio.js';
 import { LeaderboardController } from './leaderboard-controller.js';
 import { InputController } from './input-controller.js';
 
@@ -162,23 +162,46 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     });
 
-    // Music Toggle
-    let isMuted = false;
+    // Audio Toggle (3 States: All On -> Music Muted -> All Muted -> ...)
+    let audioState = 0; // 0: On, 1: Music Off, 2: All Off
     elements.musicToggleBtn.addEventListener('click', (e) => {
         e.stopPropagation(); // Don't trigger game tap
         handleFirstInteraction(); // Ensure audio context is ready
-        isMuted = !isMuted;
-        toggleMute(isMuted);
         
-        const onIcon = elements.musicToggleBtn.querySelector('.volume-on');
-        const offIcon = elements.musicToggleBtn.querySelector('.volume-off');
+        audioState = (audioState + 1) % 3;
         
-        if (isMuted) {
-            onIcon.classList.add('hidden');
-            offIcon.classList.remove('hidden');
-        } else {
+        const onIcon = elements.musicToggleBtn.querySelector('.audio-on');
+        const musicOffIcon = elements.musicToggleBtn.querySelector('.music-off');
+        const allOffIcon = elements.musicToggleBtn.querySelector('.audio-off');
+        
+        // Update Audio Logic
+        if (audioState === 0) {
+            // All On
+            setMusicMuted(false);
+            setSFXMuted(false);
+            
             onIcon.classList.remove('hidden');
-            offIcon.classList.add('hidden');
+            musicOffIcon.classList.add('hidden');
+            allOffIcon.classList.add('hidden');
+            elements.musicToggleBtn.style.color = ''; // Reset color
+        } else if (audioState === 1) {
+            // Music Muted (SFX On)
+            setMusicMuted(true);
+            setSFXMuted(false);
+
+            onIcon.classList.add('hidden');
+            musicOffIcon.classList.remove('hidden');
+            allOffIcon.classList.add('hidden');
+            elements.musicToggleBtn.style.color = 'var(--fail-color)'; // Red indicator
+        } else {
+            // All Muted
+            setMusicMuted(true);
+            setSFXMuted(true);
+
+            onIcon.classList.add('hidden');
+            musicOffIcon.classList.add('hidden');
+            allOffIcon.classList.remove('hidden');
+            elements.musicToggleBtn.style.color = ''; // Reset color
         }
     });
 
