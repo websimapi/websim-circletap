@@ -1,6 +1,6 @@
 import { Game } from './game.js';
 import { UIController } from './ui.js';
-import { submitScore, migrateUserScores } from './leaderboard.js';
+import { submitScore, migrateUserScores } from './leaderboard-api.js';
 import { showReplay, hideReplay } from './replay.js';
 import { playBackgroundMusic, fadeInMusic, fadeOutMusic, toggleMute } from './audio.js';
 import { LeaderboardController } from './leaderboard-controller.js';

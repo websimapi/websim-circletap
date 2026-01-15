@@ -1,7 +1,7 @@
 import { hsl } from 'd3-color';
 import { getHslStringForLevel, isAngleInArc, getComputedColors } from './utils.js';
 import { initAudio, playSuccess, playFail, playStart, getAudioData } from './audio.js';
-import { submitScore } from './leaderboard.js'; // This seems unused, but let's keep it in case it's needed elsewhere
+import { submitScore } from './leaderboard-api.js'; // This seems unused, but let's keep it in case it's needed elsewhere
 
 // A simplified interface to the LocalStorageSync class in leaderboard.js
 const localScoreManager = {

@@ -1,4 +1,5 @@
-import { fetchLeaderboard, renderLeaderboardList, renderLeaderboardPagination, syncScores } from './leaderboard.js';
+import { fetchLeaderboard, syncScores, fetchUserProfile } from './leaderboard-api.js';
+import { renderLeaderboardList, renderLeaderboardPagination, renderMyScores } from './leaderboard-render.js';
 
 export class LeaderboardController {
     constructor(elements, ui, callbacks) {
@@ -20,6 +21,7 @@ export class LeaderboardController {
         
         this.isMyScoresActive = false;
         this.currentUser = null;
+        this.userProfile = null;
         
         this._bindMethods();
         this._addEventListeners();
@@ -109,6 +111,9 @@ export class LeaderboardController {
         this.elements.leaderboardFilterBtns.forEach(btn => btn.classList.remove('active'));
         targetBtn.classList.add('active');
         
+        this.elements.leaderboardList.innerHTML = '<p>Loading your profile...</p>';
+        this.ui.hidePagination();
+
         if (!this.currentUser) {
             try {
                 this.currentUser = await window.websim.getCurrentUser();
@@ -118,24 +123,25 @@ export class LeaderboardController {
             }
         }
 
-        if (!this.data.cache[this.state.currentDifficulty]) {
-            await this.loadLeaderboard(this.state.currentDifficulty);
-            this.elements.leaderboardFilterBtns.forEach(btn => btn.classList.remove('active'));
-            targetBtn.classList.add('active');
+        try {
+            this.userProfile = await fetchUserProfile(this.currentUser.username);
+            this._render();
+        } catch (e) {
+            console.error("Error fetching user profile", e);
+            this.elements.leaderboardList.innerHTML = `<p>Error loading profile.</p>`;
         }
-        
-        this._render();
     }
 
     _render() {
+        if (this.isMyScoresActive) {
+            this.elements.leaderboardList.innerHTML = renderMyScores(this.userProfile);
+            this.ui.hidePagination();
+            return;
+        }
+
         const { currentPage, itemsPerPage } = this.state;
         let dataToRender = this.data.rankedPlayers;
         
-        if (this.isMyScoresActive && this.currentUser) {
-            const myData = this.data.rankedPlayers.find(p => p.username === this.currentUser.username);
-            dataToRender = myData ? [myData] : [];
-        }
-
         this.elements.leaderboardList.innerHTML = renderLeaderboardList(dataToRender, currentPage, itemsPerPage);
         
         const totalPages = Math.ceil(dataToRender.length / itemsPerPage);
@@ -170,6 +176,10 @@ export class LeaderboardController {
 
         if (pageChanged) {
             this._render();
+            // Scroll to top of the leaderboard view to prevent disorientation
+            if (this.elements.leaderboardView) {
+                this.elements.leaderboardView.scrollTop = 0;
+            }
         }
     }
 
@@ -202,15 +212,31 @@ export class LeaderboardController {
     }
 
     async _handleReplayClick(watchBtn) {
-        const index = watchBtn.dataset.index;
-        const scoreIndex = watchBtn.dataset.scoreIndex;
-        const playerData = this.data.rankedPlayers[index];
+        const context = watchBtn.dataset.context; // 'my-scores' or undefined (default leaderboard)
         
-        const gameData = scoreIndex !== undefined
-            ? playerData.allScores[scoreIndex]
-            : playerData.bestGameData;
+        let gameData, user;
 
-        if (playerData && gameData && gameData.replayDataUrl) {
+        if (context === 'my-scores') {
+            const difficulty = watchBtn.dataset.difficulty;
+            const scoreIndex = parseInt(watchBtn.dataset.scoreIndex);
+            
+            // Sort to match render order
+            const scores = (this.userProfile[difficulty] || []).sort((a, b) => b.score - a.score);
+            gameData = scores[scoreIndex];
+            user = this.currentUser;
+
+        } else {
+            const index = watchBtn.dataset.index;
+            const scoreIndex = watchBtn.dataset.scoreIndex;
+            const playerData = this.data.rankedPlayers[index];
+            user = { username: playerData.username }; // Minimal user obj
+            
+            gameData = scoreIndex !== undefined
+                ? playerData.allScores[scoreIndex]
+                : playerData.bestGameData;
+        }
+
+        if (gameData && gameData.replayDataUrl) {
             try {
                 const originalHtml = watchBtn.innerHTML;
                 watchBtn.innerHTML = '<span style="font-size: 0.6rem;">...</span>'; 
@@ -224,8 +250,8 @@ export class LeaderboardController {
 
                 if (!replayData.config.currentUser) {
                     replayData.config.currentUser = {
-                        username: playerData.username,
-                        avatar_url: `https://images.websim.com/avatar/${playerData.username}`
+                        username: user.username,
+                        avatar_url: `https://images.websim.com/avatar/${user.username}`
                     };
                 }
 
