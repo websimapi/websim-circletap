@@ -6,38 +6,69 @@
     height: 100%;
     background-color: rgba(26, 26, 46, 0.98);
     z-index: 100;
-    padding: 20px;
     color: var(--text-color);
-    overflow-y: auto;
-    text-align: center;
+    overflow: hidden; /* No scrolling allowed */
+    display: flex;
+    flex-direction: column;
+}
+
+.view-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: 10px 20px;
+    align-items: center;
+}
+
+.list-container {
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden; 
+}
+
+.pagination-container {
+    flex-shrink: 0;
+    margin-top: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding-bottom: 20px; /* Safe area */
 }
 
 #leaderboard-view h2 {
-    font-size: calc(2rem * var(--ui-scale));
+    font-size: calc(1.8rem * var(--ui-scale));
     color: var(--accent-color);
-    margin-top: calc(40px * var(--ui-scale));
-    margin-bottom: calc(20px * var(--ui-scale));
+    margin-top: calc(5px * var(--ui-scale));
+    margin-bottom: calc(8px * var(--ui-scale));
     display: block;
+    flex-shrink: 0;
 }
 
 #leaderboard-difficulty-filters {
     display: flex;
-    gap: 10px;
-    margin: 0 auto 20px auto;
+    gap: 8px;
+    margin: 0 auto 10px auto;
     justify-content: center;
     max-width: 600px;
     flex-wrap: wrap;
+    width: 100%;
 }
 
 .leaderboard-filter-btn {
-    padding: 8px 16px;
-    font-size: 0.9rem;
+    padding: 8px 12px;
+    font-size: 0.85rem;
     border: 1px solid var(--secondary-color);
     border-radius: 8px;
     background-color: transparent;
     color: var(--text-color);
     cursor: pointer;
     transition: background-color 0.2s, border-color 0.2s;
+    white-space: nowrap;
 }
 
 .leaderboard-filter-btn:hover {
@@ -50,44 +81,53 @@
     font-weight: bold;
 }
 
-#leaderboard-list {
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto 20px auto;
-    display: block;
-    text-align: left;
-}
-
 .leaderboard-entry-wrapper {
     background-color: var(--primary-color);
     border-radius: 8px;
     transition: background-color 0.2s;
-    margin-bottom: 8px;
+    width: 100%;
 }
 
-.my-score-section .section-header {
+.my-score-card {
     display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 12px 15px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: 1px solid transparent;
 }
 
-.diff-title {
-    font-size: 1.1rem;
+.my-score-card:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.my-score-card .diff-title {
+    font-size: 1.2rem;
     font-weight: bold;
     color: var(--text-color);
     text-transform: capitalize;
 }
 
-.dropdown-icon {
-    font-size: 0.8rem;
-    margin-left: 10px;
-    transition: transform 0.2s;
+.my-score-card .diff-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
 }
 
-.leaderboard-entry.expanded .dropdown-icon {
-    transform: rotate(180deg);
+.my-score-card .best-score {
+    color: var(--accent-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.my-score-card .games-count {
+    font-size: 0.8rem;
+    color: #888;
 }
 
 .leaderboard-entry {
@@ -103,13 +143,11 @@
     font-size: 1rem;
     cursor: pointer;
     border-radius: 8px;
-    transition: border-radius 0.2s ease-in-out;
+    width: 100%;
 }
 
-.leaderboard-entry.expanded {
-    background-color: #2a2a4e;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+.leaderboard-entry:hover {
+    background-color: rgba(255,255,255,0.05);
 }
 
 .avatar-wrapper {
@@ -197,21 +235,133 @@
     line-height: 1.2;
 }
 
-.score-list-container {
-    padding: 0 10px 10px 10px; /* Match entry padding */
+/* Detail View Styles */
+.detail-header {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 500px;
-    overflow-y: auto;
-    transition: max-height 0.3s ease-in-out;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 15px;
+    flex-shrink: 0;
+    gap: 12px;
+    position: relative;
+    justify-content: flex-start;
 }
 
-.score-list-container.hidden {
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+.detail-header::after {
+    display: none;
+}
+
+#detail-header-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.mini-profile-card {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 6px 10px;
+    border-radius: 30px;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.mini-profile-avatar-container {
+    flex-shrink: 0;
+}
+
+.mini-profile-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-color);
+    object-fit: cover;
+    display: block;
+}
+
+.mini-profile-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 3px;
+    flex-grow: 1;
+}
+
+.mini-profile-username {
+    font-size: 0.95rem;
+    font-weight: bold;
+    line-height: 1;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+}
+
+.mini-profile-stats {
+    display: flex;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: #bbb;
+    align-items: center;
+}
+
+.stat-pill {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.stat-pill .l {
+    color: #888;
+    font-weight: bold;
+    font-size: 0.65rem;
+}
+
+.stat-pill .v {
+    font-weight: bold;
+}
+.stat-pill.easy .v { color: var(--success-color); }
+.stat-pill.medium .v { color: #f07b3f; }
+.stat-pill.hard .v { color: var(--fail-color); }
+
+.mini-profile-fallback {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    font-weight: bold;
+    padding: 0 10px;
+}
+
+.back-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    color: var(--text-color);
+    font-weight: bold;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    height: 36px;
+    z-index: 10;
+    width: auto;
+    flex-shrink: 0;
+}
+
+.back-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.back-nav-btn svg {
+    width: 20px;
+    height: 20px;
 }
 
 .score-entry {
@@ -267,24 +417,9 @@
     height: 100%;
 }
 
-#leaderboard-pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin: 20px auto 0 auto;
-    padding: 10px 0 80px 0; 
-    width: 100%;
-    max-width: 600px;
-    flex-wrap: wrap;
-    clear: both;
-    position: relative;
-    z-index: 5;
-}
-
-#leaderboard-pagination button {
-    padding: 10px 14px;
-    min-width: 44px;
+.pagination-container button {
+    padding: 8px 12px;
+    min-width: 40px;
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-color);
     border: 1px solid rgba(255,255,255,0.2);
@@ -310,10 +445,10 @@
     gap: 8px;
 }
 
-#leaderboard-pagination input[type="number"] {
-    width: 60px;
-    padding: 8px;
-    font-size: 1rem;
+.pagination-container input[type="number"] {
+    width: 50px;
+    padding: 6px;
+    font-size: 0.9rem;
     text-align: center;
     border: 1px solid var(--secondary-color);
     border-radius: 6px;
@@ -322,10 +457,15 @@
     -moz-appearance: textfield; /* Firefox */
 }
 
-#leaderboard-pagination input[type="number"]::-webkit-outer-spin-button,
-#leaderboard-pagination input[type="number"]::-webkit-inner-spin-button {
+.pagination-container input[type="number"]::-webkit-outer-spin-button,
+.pagination-container input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+#detail-list {
+    width: 100%;
+    max-width: 600px;
 }
 
 #close-leaderboard-btn {
@@ -349,9 +489,9 @@
     width: 100%;
     max-width: 600px;
     background: rgba(255, 255, 255, 0.05);
-    padding: 15px;
+    padding: 10px 12px;
     border-radius: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     gap: 15px;
 }
 
@@ -413,4 +553,18 @@
     font-size: 1.1rem;
     font-weight: bold;
     color: var(--accent-color);
+}
+
+@media (max-width: 480px) {
+    #leaderboard-difficulty-filters {
+        flex-wrap: nowrap;
+        gap: 4px;
+        padding: 0 5px;
+    }
+    .leaderboard-filter-btn {
+        padding: 6px 4px;
+        font-size: 0.75rem;
+        flex: 1;
+        min-width: 0;
+    }
 }
