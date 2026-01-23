@@ -17,6 +17,8 @@ export class VSManager {
         
         this.latestPresence = {};
         this.targetOpponentId = null;
+        this.pendingOpponentId = null;
+        this.connectionTimeout = null;
 
         // Initialization
         this.init();
@@ -43,12 +45,17 @@ export class VSManager {
             clearInterval(this.countdownInterval);
             this.countdownInterval = null;
         }
+        if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+            this.connectionTimeout = null;
+        }
         this.opponent = null;
         this.opponentId = null;
         this.matchId = null;
         this.currentOpponentState = null;
         this.targetOpponentState = null;
         this.targetOpponentId = null;
+        this.pendingOpponentId = null;
         this.ui.resetVSUI();
     }
 
@@ -61,11 +68,20 @@ export class VSManager {
         
         room.updatePresence({
             status: 'seeking',
-            vs_level: this.game.level,
+            vs_level: 1, // Start fresh
             vs_mode_active: true,
             vs_health: 300,
             vs_score: 0
         });
+
+        // Immediately check if we can match (in case presence is already fresh)
+        if (this.latestPresence) {
+            setTimeout(() => {
+                if (this.state === 'seeking') {
+                    this.attemptMatchmaking(this.latestPresence);
+                }
+            }, 100);
+        }
     }
 
     directChallenge(targetId) {
@@ -173,13 +189,42 @@ export class VSManager {
 
     initiateInvite(opponentId) {
         this.state = 'connecting';
+        this.pendingOpponentId = opponentId;
         const matchId = `${room.clientId}-${opponentId}-${Date.now()}`;
+        
+        this.ui.updateVSStatus('Connecting...', true);
+
         room.requestPresenceUpdate(opponentId, { type: 'vs_invite', matchId: matchId });
+
+        // Timeout to go back to seeking if no response
+        if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
+        this.connectionTimeout = setTimeout(() => {
+            if (this.state === 'connecting') {
+                console.log("Connection timed out. Returning to seeking.");
+                this.state = 'seeking';
+                this.pendingOpponentId = null;
+                this.ui.updateVSStatus('Searching for opponent...', true);
+                // Attempt again next tick
+                this.attemptMatchmaking(this.latestPresence);
+            }
+        }, 5000); // 5 seconds timeout
     }
 
     handlePresenceRequest(req, fromId) {
-        if (req.type === 'vs_invite' && this.state === 'seeking') {
-            this.acceptMatch(fromId, req.matchId);
+        if (req.type === 'vs_invite') {
+            if (this.state === 'seeking') {
+                this.acceptMatch(fromId, req.matchId);
+            } else if (this.state === 'connecting') {
+                // Collision handling: 
+                // Case: I am connecting to User A. User A invites me (collision).
+                const isTarget = this.pendingOpponentId === fromId;
+                const theyHavePriority = fromId < room.clientId;
+
+                if (isTarget && theyHavePriority) {
+                    console.log("Collision detected. Yielding to priority invite.");
+                    this.acceptMatch(fromId, req.matchId);
+                }
+            }
         } else if (req.type === 'vs_accept' && (this.state === 'connecting' || this.state === 'seeking')) {
             this.startMatch(fromId, req.matchId);
         } else if (req.type === 'vs_damage') {
@@ -192,14 +237,29 @@ export class VSManager {
     }
 
     acceptMatch(opponentId, matchId) {
+        if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
+        this.connectionTimeout = null;
+
         this.state = 'connecting';
         this.matchId = matchId;
+        this.pendingOpponentId = opponentId;
+        
         room.requestPresenceUpdate(opponentId, { type: 'vs_accept', matchId: matchId });
         this.startMatch(opponentId, matchId);
     }
 
     startMatch(opponentId, matchId) {
+        if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
+        this.connectionTimeout = null;
+
         this.opponent = room.peers[opponentId]; // { username, avatarUrl, ... }
+        
+        if (!this.opponent) {
+            console.warn("Opponent peer data missing. Restarting search.");
+            this.startSeeking();
+            return;
+        }
+
         this.opponentId = opponentId;
         this.matchId = matchId;
         this.state = 'counting_down';
