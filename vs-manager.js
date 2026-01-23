@@ -7,6 +7,7 @@ export class VSManager {
         this.state = 'idle'; // idle, seeking, connecting, counting_down, playing, ended
         this.opponent = null;
         this.matchId = null;
+        this.countdownInterval = null;
         this.opponentCanvas = document.getElementById('opponent-canvas');
         this.ctx = this.opponentCanvas.getContext('2d');
         this.currentUser = null;
@@ -35,6 +36,10 @@ export class VSManager {
     }
 
     resetState() {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+        }
         this.opponent = null;
         this.opponentId = null;
         this.matchId = null;
@@ -123,7 +128,8 @@ export class VSManager {
             // Lower ID initiates the invite
             if (myId < opponentId) {
                 this.state = 'connecting';
-                room.requestPresenceUpdate(opponentId, { type: 'vs_invite', matchId: `${myId}-${opponentId}` });
+                const matchId = `${myId}-${opponentId}-${Date.now()}`;
+                room.requestPresenceUpdate(opponentId, { type: 'vs_invite', matchId: matchId });
             }
         }
     }
@@ -166,9 +172,9 @@ export class VSManager {
         this.game.setDifficulty('easy'); // Ensure visuals are easy during countdown
         this.game.reset(); // Resets local state
         
-        // Initial VS State
+        // Initial VS State (Counting Down)
         room.updatePresence({
-            status: 'playing',
+            status: 'counting_down',
             matchId: matchId,
             vs_health: 300,
             vs_level: 1,
@@ -181,19 +187,31 @@ export class VSManager {
         // Countdown
         let count = 3;
         this.ui.updateVSStatus(`Starting in ${count}...`, true);
-        const interval = setInterval(() => {
+        
+        if (this.countdownInterval) clearInterval(this.countdownInterval);
+        
+        this.countdownInterval = setInterval(() => {
             count--;
             if (count > 0) {
                 this.ui.updateVSStatus(`Starting in ${count}...`, true);
             } else {
-                clearInterval(interval);
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
+                
                 this.state = 'playing';
+                
+                // Update presence to playing
+                room.updatePresence({
+                    status: 'playing',
+                    vs_health: 300 // Re-assert health just in case
+                });
+
                 this.ui.updateVSStatus('FIGHT!', true);
                 setTimeout(() => this.ui.updateVSStatus('', false), 1000);
                 this.game.start('easy', { 
-                username: this.opponent.username, 
-                avatarUrl: this.opponent.avatarUrl 
-            }); 
+                    username: this.opponent.username, 
+                    avatarUrl: this.opponent.avatarUrl 
+                }); 
             }
         }, 1000);
     }
@@ -208,39 +226,58 @@ export class VSManager {
         }
 
         const oppData = presence[this.opponentId];
-        // Handle undefined health (initial state) by defaulting to 300, but allow 0 (death)
-        // If we are counting down, force 300 to avoid reading stale end-game state from previous match
-        let oppHealth = oppData.vs_health !== undefined ? oppData.vs_health : 300;
+        
+        // Validate Opponent State to prevent stale data leaks (e.g. reading Zen mode levels)
+        // We only trust data if they are in the same match AND in a valid VS state
+        const isValidOpponent = (oppData.status === 'playing' || oppData.status === 'counting_down') &&
+                                oppData.matchId === this.matchId;
+
+        // Default values if opponent isn't ready yet
+        let oppHealth = 300;
+        let oppLevel = 1;
+        let oppScore = 0;
+        let oppAngle = 0;
+        let oppTargetStart = 0;
+        let oppTargetSize = 0.4;
+
+        if (isValidOpponent) {
+            oppHealth = oppData.vs_health !== undefined ? oppData.vs_health : 300;
+            oppLevel = oppData.vs_level || 1;
+            oppScore = oppData.vs_score || 0;
+            oppAngle = oppData.vs_angle || 0;
+            oppTargetStart = oppData.vs_targetStart || 0;
+            oppTargetSize = oppData.vs_targetSize || 0.4;
+        }
+
         if (this.state === 'counting_down') {
-            oppHealth = 300;
+            oppHealth = 300; // Force full health during countdown
         }
         
         // Update opponent UI
         this.ui.updateOpponentHearts(oppHealth);
-        this.ui.updateOpponentScore(oppData.vs_score || 0);
-        this.ui.updateOpponentLevel(oppData.vs_level || 1);
+        this.ui.updateOpponentScore(oppScore);
+        this.ui.updateOpponentLevel(oppLevel);
         
         // Logic for drain
         if (this.state === 'playing') {
-            const myLevel = this.game.level;
-            const oppLevel = oppData.vs_level || 1;
-            
-            // This is calculated in game loop locally, but we can verify here
-            this.game.setOpponentLevel(oppLevel);
-
-            // Check if opponent died
-            if (oppHealth <= 0) {
-                this.endMatch('win');
+            // Only apply drain if opponent is valid (prevents draining against a ghost/laggy player)
+            if (isValidOpponent) {
+                this.game.setOpponentLevel(oppLevel);
+                
+                // Check if opponent died
+                if (oppHealth <= 0) {
+                    this.endMatch('win');
+                }
             }
         }
 
         // Store target render data for interpolation
         this.targetOpponentState = {
-            angle: oppData.vs_angle || 0,
-            targetStart: oppData.vs_targetStart || 0,
-            targetSize: oppData.vs_targetSize || 0,
-            level: oppData.vs_level || 1,
-            score: oppData.vs_score || 0,
+            angle: oppAngle,
+            targetStart: oppTargetStart,
+            targetSize: oppTargetSize,
+            level: oppLevel,
+            score: oppScore,
             health: oppHealth
         };
 
