@@ -59,14 +59,73 @@ export class LeaderboardController {
     async show(difficulty = 'easy') {
         if (this.callbacks.onInteraction) this.callbacks.onInteraction();
 
-        // Adjust items per page for mobile/small screens
-        const isSmallScreen = window.innerHeight < 750 || window.innerWidth < 480;
-        this.state.itemsPerPage = isSmallScreen ? 5 : 8;
-        this.detailState.itemsPerPage = isSmallScreen ? 5 : 8;
-        
         syncScores();
-        this.hideDetailView(); // Ensure we start on main list
+        this.hideDetailView(); 
+        
+        this.ui.showLeaderboardView(); 
+        this._updateItemsPerPage();
+
+        if (!this._resizeHandler) {
+            this._resizeHandler = () => {
+                this._updateItemsPerPage();
+                if (this.detailState.active) {
+                    this._renderDetail();
+                } else {
+                    this._render();
+                }
+            };
+            window.addEventListener('resize', this._resizeHandler);
+        }
+
         this.loadLeaderboard(difficulty);
+    }
+
+    _updateItemsPerPage() {
+        // Use visual viewport height if available for better mobile keyboard/bar handling
+        const containerHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        
+        if (this.elements.leaderboardView) {
+            this.elements.leaderboardView.style.height = `${containerHeight}px`;
+        }
+
+        // Get scaling factor from CSS variable
+        const rootStyles = getComputedStyle(document.documentElement);
+        const uiScale = parseFloat(rootStyles.getPropertyValue('--ui-scale')) || 1;
+
+        // Measure fixed UI elements to find exact remaining space
+        // We assume worst-case scenario: Pagination is present.
+        
+        // Approximate heights based on CSS + scale
+        // Title: ~1.5rem + margins ~20px -> approx 50-60px scaled
+        // Filters: ~40px scaled
+        // Detail Header: ~60px scaled
+        // Pagination: ~70px fixed padding/min-height
+        // Padding/Safety: ~20px
+        
+        // Dynamic measure would be better but elements might be hidden. 
+        // Let's use robust estimates derived from base CSS pixels * uiScale
+        
+        const headerEstimatedHeight = 130 * uiScale; 
+        const paginationHeight = 80; // Fixed pixels mostly (buttons) + padding
+        const safetyBuffer = 20;
+
+        const availableListHeight = Math.max(0, containerHeight - headerEstimatedHeight - paginationHeight - safetyBuffer);
+        
+        // Base item height is approx 65px (padding + content) * uiScale
+        const itemBaseHeight = 65 * uiScale; 
+
+        let calculatedItems = Math.floor(availableListHeight / itemBaseHeight);
+        
+        // Clamp: Min 3 items to be usable
+        calculatedItems = Math.max(3, calculatedItems);
+        
+        // Cap at 8 for aesthetics on large screens
+        calculatedItems = Math.min(calculatedItems, 8);
+
+        this.state.itemsPerPage = calculatedItems;
+        this.detailState.itemsPerPage = calculatedItems;
+        
+        // console.log(`UI Scale: ${uiScale}, Avail: ${availableListHeight}, ItemH: ${itemBaseHeight}, Count: ${calculatedItems}`);
     }
 
     async loadLeaderboard(difficulty) {
@@ -74,7 +133,6 @@ export class LeaderboardController {
         this.isMyScoresActive = false;
         this.state.currentPage = 1;
         
-        this.ui.showLeaderboardView();
         this.elements.leaderboardList.innerHTML = '<p>Loading scores...</p>';
         this.ui.hidePagination();
         this.data.rankedPlayers = [];
@@ -155,9 +213,35 @@ export class LeaderboardController {
     }
 
     _render() {
+        // Reset scaling
+        this.elements.leaderboardList.style.transform = '';
+        this.elements.leaderboardList.style.transformOrigin = 'top center';
+        this.elements.leaderboardList.style.width = '100%';
+        this.elements.leaderboardList.style.height = ''; 
+        this.elements.leaderboardList.style.display = 'flex';
+        this.elements.leaderboardList.style.flexDirection = 'column';
+
         if (this.isMyScoresActive) {
             this.elements.leaderboardList.innerHTML = renderMyScores(this.userProfile);
             this.ui.hidePagination();
+            
+            // Auto-scale "My Scores" if it overflows (since it's not paginated)
+            // Using a slightly delayed check to ensure layout is complete
+            setTimeout(() => {
+                const container = this.elements.leaderboardList;
+                // Use offsetHeight vs scrollHeight
+                const availableHeight = container.offsetHeight;
+                const contentHeight = container.scrollHeight;
+                
+                // If content is significantly larger (tolerance 2px)
+                if (contentHeight > availableHeight + 2 && availableHeight > 0) {
+                     // Calculate safe scale
+                     const scale = (availableHeight - 10) / contentHeight; 
+                     container.style.transform = `scale(${scale})`;
+                     container.style.width = `${100 / scale}%`; 
+                     // Center vertically if scaled down heavily? No, top align is usually better for lists.
+                }
+            }, 50);
             return;
         }
 
@@ -302,6 +386,13 @@ export class LeaderboardController {
 
     handleBackClick() {
         this.hideDetailView();
+    }
+
+    close() {
+        if (this._resizeHandler) {
+            window.removeEventListener('resize', this._resizeHandler);
+            this._resizeHandler = null;
+        }
     }
 
     async _handleReplayClick(watchBtn) {

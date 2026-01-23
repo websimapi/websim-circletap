@@ -9,7 +9,39 @@ export class UIController {
     }
 
     showAbout() {
-        if(this.elements.aboutView) this.elements.aboutView.classList.remove('hidden');
+        if(this.elements.aboutView) {
+            this.elements.aboutView.classList.remove('hidden');
+            this.fitAboutContent();
+        }
+    }
+
+    fitAboutContent() {
+        const content = this.elements.aboutView.querySelector('.about-content');
+        if (!content) return;
+        
+        // Reset to measure
+        content.style.transform = '';
+        content.style.width = '90%';
+        
+        // Use visualViewport if available for accuracy
+        const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+        
+        const contentHeight = content.scrollHeight;
+        const padding = 80; // Larger buffer for safe areas
+        
+        const availableHeight = viewportHeight - padding;
+        
+        if (contentHeight > availableHeight) {
+            const scale = availableHeight / contentHeight;
+            // Prevent becoming microscopic
+            const finalScale = Math.max(0.5, scale);
+            
+            content.style.transform = `scale(${finalScale})`;
+            // Fix width when scaled
+            // If we scale down, we can afford to be wider to compensate text wrapping? 
+            // No, that complicates things. Just scale.
+        }
     }
 
     hideAbout() {
@@ -188,6 +220,12 @@ export class UIController {
     setSubmitButtonState(state, text) {
         this.elements.submitScoreBtn.disabled = state === 'disabled';
         this.elements.submitScoreBtn.textContent = text;
+    }
+
+    handleResize() {
+        if (this.elements.aboutView && !this.elements.aboutView.classList.contains('hidden')) {
+            this.fitAboutContent();
+        }
     }
 
     updateDifficulty(difficulty) {

@@ -716,10 +716,16 @@ button:active {
     padding: 30px 20px;
     border-radius: 16px;
     max-width: 500px;
-    width: 100%;
+    width: 90%;
     text-align: center;
     position: relative;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transform-origin: center center;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: auto;
 }
 
 #close-about-btn {

@@ -70,9 +70,9 @@ export function renderMyScores(userProfile) {
                 <div class="profile-username">${username}</div>
                 <div class="profile-total-games">${totalGames} Games Played</div>
                 <div class="profile-bests">
-                    <div class="best-stat"><span class="label">Easy</span><span class="value">${bestScores.easy}</span></div>
-                    <div class="best-stat"><span class="label">Med</span><span class="value">${bestScores.medium}</span></div>
-                    <div class="best-stat"><span class="label">Hard</span><span class="value">${bestScores.hard}</span></div>
+                    <div class="best-stat"><span class="label">E</span><span class="value">${bestScores.easy}</span></div>
+                    <div class="best-stat"><span class="label">M</span><span class="value">${bestScores.medium}</span></div>
+                    <div class="best-stat"><span class="label">H</span><span class="value">${bestScores.hard}</span></div>
                 </div>
             </div>
         </div>
@@ -85,7 +85,7 @@ export function renderMyScores(userProfile) {
         
         return `
             <div class="leaderboard-entry-wrapper my-score-entry" data-difficulty="${diff}">
-                <div class="my-score-card">
+                <div class="my-score-card compact">
                     <div class="diff-title">${diff.charAt(0).toUpperCase() + diff.slice(1)}</div>
                     <div class="diff-stats">
                         <span class="best-score">Best: ${bestScore}</span>

@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     elements.closeLeaderboardBtn.addEventListener('click', () => {
         ui.hideLeaderboardView(leaderboardOrigin);
+        leaderboardController.close();
     });
 
     // Responsive UI Scaling
@@ -320,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         game.resizeCanvas();
         updateUIScale();
+        ui.handleResize();
     });
 
     // Initial setup
