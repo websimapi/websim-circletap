@@ -11,7 +11,10 @@ export class UIController {
     showAbout() {
         if(this.elements.aboutView) {
             this.elements.aboutView.classList.remove('hidden');
-            this.fitAboutContent();
+            // Defer measurement to ensure layout is ready
+            requestAnimationFrame(() => {
+                this.fitAboutContent();
+            });
         }
     }
 
@@ -19,28 +22,36 @@ export class UIController {
         const content = this.elements.aboutView.querySelector('.about-content');
         if (!content) return;
         
-        // Reset to measure
+        // Reset to measure natural size
         content.style.transform = '';
-        content.style.width = '90%';
         
-        // Use visualViewport if available for accuracy
         const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
         
-        const contentHeight = content.scrollHeight;
-        const padding = 80; // Larger buffer for safe areas
+        // Safety margin (top/bottom combined)
+        const marginY = 40; 
+        const marginX = 20;
+
+        const availableHeight = viewportHeight - marginY;
+        const availableWidth = viewportWidth - marginX;
         
-        const availableHeight = viewportHeight - padding;
+        const contentHeight = content.offsetHeight; // Use offsetHeight for actual rendered height including padding/border
+        const contentWidth = content.offsetWidth;
         
+        let scale = 1;
+        
+        // Fit Height
         if (contentHeight > availableHeight) {
-            const scale = availableHeight / contentHeight;
-            // Prevent becoming microscopic
-            const finalScale = Math.max(0.5, scale);
-            
-            content.style.transform = `scale(${finalScale})`;
-            // Fix width when scaled
-            // If we scale down, we can afford to be wider to compensate text wrapping? 
-            // No, that complicates things. Just scale.
+            scale = Math.min(scale, availableHeight / contentHeight);
+        }
+        
+        // Fit Width
+        if (contentWidth > availableWidth) {
+            scale = Math.min(scale, availableWidth / contentWidth);
+        }
+
+        if (scale < 1) {
+            content.style.transform = `scale(${scale})`;
         }
     }
 
@@ -224,7 +235,7 @@ export class UIController {
 
     handleResize() {
         if (this.elements.aboutView && !this.elements.aboutView.classList.contains('hidden')) {
-            this.fitAboutContent();
+            requestAnimationFrame(() => this.fitAboutContent());
         }
     }
 
