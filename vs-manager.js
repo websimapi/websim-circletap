@@ -15,6 +15,9 @@ export class VSManager {
         // Game sync data
         this.lastPresenceUpdate = 0;
         
+        this.latestPresence = {};
+        this.targetOpponentId = null;
+
         // Initialization
         this.init();
     }
@@ -45,14 +48,16 @@ export class VSManager {
         this.matchId = null;
         this.currentOpponentState = null;
         this.targetOpponentState = null;
+        this.targetOpponentId = null;
         this.ui.resetVSUI();
     }
 
-    startSeeking() {
+    startSeeking(targetId = null) {
         this.resetState();
+        this.targetOpponentId = targetId; // Set after reset
         this.state = 'seeking';
         this.game.setMode('zen'); // Start Zen mode while waiting
-        this.ui.updateVSStatus('Searching for opponent...', true);
+        this.ui.updateVSStatus(targetId ? 'Challenging player...' : 'Searching for opponent...', true);
         
         room.updatePresence({
             status: 'seeking',
@@ -61,6 +66,25 @@ export class VSManager {
             vs_health: 300,
             vs_score: 0
         });
+    }
+
+    directChallenge(targetId) {
+        // Check if user is available in cached presence
+        const targetData = this.latestPresence ? this.latestPresence[targetId] : null;
+        
+        // If target doesn't exist, isn't seeking, or isn't in VS mode, fail.
+        if (!targetData || targetData.status !== 'seeking' || !targetData.vs_mode_active) {
+            return false;
+        }
+
+        // Start seeking specifically for this user
+        this.startSeeking(targetId);
+        
+        // Attempt match immediately with current data to avoid waiting for next tick
+        if (this.latestPresence) {
+            this.attemptMatchmaking(this.latestPresence);
+        }
+        return true;
     }
 
     cancelSeeking() {
@@ -76,6 +100,7 @@ export class VSManager {
     }
 
     handlePresenceUpdate(presence) {
+        this.latestPresence = presence;
         // Update Lobby UI (Title Screen)
         this.updateLobbyPreview(presence);
 
@@ -119,19 +144,32 @@ export class VSManager {
                        data.vs_mode_active;
             });
 
-        if (potentialOpponents.length > 0) {
-            // Sort by ID to ensure deterministic pairing
-            potentialOpponents.sort((a, b) => a[0].localeCompare(b[0]));
-            const opponentId = potentialOpponents[0][0];
-            const opponentData = potentialOpponents[0][1];
+        if (this.targetOpponentId) {
+            // Targeted Challenge
+            const target = potentialOpponents.find(p => p[0] === this.targetOpponentId);
+            if (target) {
+                const opponentId = target[0];
+                this.initiateInvite(opponentId);
+            }
+        } else {
+            // Auto Match
+            if (potentialOpponents.length > 0) {
+                // Sort by ID to ensure deterministic pairing
+                potentialOpponents.sort((a, b) => a[0].localeCompare(b[0]));
+                const opponentId = potentialOpponents[0][0];
 
-            // Lower ID initiates the invite
-            if (myId < opponentId) {
-                this.state = 'connecting';
-                const matchId = `${myId}-${opponentId}-${Date.now()}`;
-                room.requestPresenceUpdate(opponentId, { type: 'vs_invite', matchId: matchId });
+                // Lower ID initiates the invite
+                if (myId < opponentId) {
+                    this.initiateInvite(opponentId);
+                }
             }
         }
+    }
+
+    initiateInvite(opponentId) {
+        this.state = 'connecting';
+        const matchId = `${room.clientId}-${opponentId}-${Date.now()}`;
+        room.requestPresenceUpdate(opponentId, { type: 'vs_invite', matchId: matchId });
     }
 
     handlePresenceRequest(req, fromId) {

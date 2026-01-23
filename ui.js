@@ -278,6 +278,7 @@ export class UIController {
         displayUsers.forEach((user, index) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'lobby-avatar-container';
+            wrapper.dataset.clientId = user.clientId; // Store ID for click handling
             // Reverse z-index so first element is on top of the stack
             wrapper.style.zIndex = maxAvatars - index; 
 

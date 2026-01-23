@@ -145,6 +145,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // VS Lobby Preview Click (Direct Challenge)
+    const vsLobbyPreview = document.getElementById('vs-lobby-preview');
+    if (vsLobbyPreview) {
+        vsLobbyPreview.addEventListener('click', (e) => {
+            const wrapper = e.target.closest('.lobby-avatar-container');
+            if (wrapper && wrapper.dataset.clientId) {
+                e.stopPropagation();
+                handleFirstInteraction();
+                
+                const success = vsManager.directChallenge(wrapper.dataset.clientId);
+                if (success) {
+                    ui.showVSZenScreen();
+                    game.start('easy'); // Start game loop for visual feedback
+                } else {
+                    // Show feedback without leaving menu
+                    const tts = document.getElementById('tap-to-start');
+                    if (tts) {
+                        const originalText = tts.innerText;
+                        tts.innerText = "PLAYER BUSY";
+                        tts.style.color = 'var(--fail-color)';
+                        tts.classList.remove('blink');
+                        
+                        setTimeout(() => {
+                            tts.innerText = originalText;
+                            tts.style.color = '';
+                            tts.classList.add('blink');
+                        }, 1500);
+                    }
+                }
+            }
+        });
+    }
+
     // VS Back Button
     if (elements.vsBackBtn) {
         elements.vsBackBtn.addEventListener('click', (e) => {
