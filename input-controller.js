@@ -12,13 +12,18 @@ export class InputController {
     }
 
     _tapHandler(e) {
-        // Prevent game tap if clicking music toggle
-        if (e.target.closest('#music-toggle-btn')) return;
-
-        if (e.target.tagName !== 'BUTTON') {
-            e.preventDefault();
-            this.game.handleTap();
+        // Prevent game tap if interaction targets a UI element
+        if (e.target.closest('button') || 
+            e.target.closest('a') || 
+            e.target.closest('input') || 
+            e.target.closest('textarea') ||
+            e.target.closest('.leaderboard-entry') || 
+            e.target.closest('.my-score-card')) {
+            return;
         }
+
+        e.preventDefault();
+        this.game.handleTap();
     }
 
     _spacebarHandler(e) {

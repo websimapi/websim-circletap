@@ -22,37 +22,34 @@ export class UIController {
         const content = this.elements.aboutView.querySelector('.about-content');
         if (!content) return;
         
-        // Reset to measure natural size
-        content.style.transform = '';
+        // Reset to measure natural size while keeping position
+        content.style.transform = 'translate(-50%, -50%) scale(1)';
         
         const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
         
-        // Safety margin (top/bottom combined)
+        // Safety margin
         const marginY = 40; 
         const marginX = 20;
 
         const availableHeight = viewportHeight - marginY;
         const availableWidth = viewportWidth - marginX;
         
-        const contentHeight = content.offsetHeight; // Use offsetHeight for actual rendered height including padding/border
+        const contentHeight = content.offsetHeight; 
         const contentWidth = content.offsetWidth;
         
         let scale = 1;
         
-        // Fit Height
         if (contentHeight > availableHeight) {
             scale = Math.min(scale, availableHeight / contentHeight);
         }
         
-        // Fit Width
         if (contentWidth > availableWidth) {
             scale = Math.min(scale, availableWidth / contentWidth);
         }
 
-        if (scale < 1) {
-            content.style.transform = `scale(${scale})`;
-        }
+        // Apply scale combined with centering translate
+        content.style.transform = `translate(-50%, -50%) scale(${scale})`;
     }
 
     hideAbout() {
@@ -92,6 +89,7 @@ export class UIController {
         this.elements.scoreDisplay.classList.remove('hidden');
         this.elements.levelDisplay.classList.remove('hidden');
         this.elements.vsStatusDisplay.classList.remove('hidden');
+        if (this.elements.vsBackBtn) this.elements.vsBackBtn.classList.remove('hidden');
     }
 
     showGameOverMenu(score) {
@@ -311,6 +309,7 @@ export class UIController {
         this.elements.scoreDisplay.classList.add('hidden'); // Hide main score
         this.elements.playerHeartsContainer.classList.remove('hidden');
         this.elements.opponentView.classList.remove('hidden');
+        if (this.elements.vsBackBtn) this.elements.vsBackBtn.classList.add('hidden');
         
         // Setup Player Hearts
         this.elements.playerHearts.innerHTML = '';
@@ -382,6 +381,7 @@ export class UIController {
         this.elements.playerHeartsContainer.classList.add('hidden');
         this.elements.opponentView.classList.add('hidden');
         this.elements.vsStatusDisplay.classList.add('hidden');
+        if (this.elements.vsBackBtn) this.elements.vsBackBtn.classList.add('hidden');
         // Ensure main score is visible if not in menu
         if (this.elements.startMenu.classList.contains('hidden') && this.elements.gameOverMenu.classList.contains('hidden')) {
             this.elements.scoreDisplay.classList.remove('hidden');

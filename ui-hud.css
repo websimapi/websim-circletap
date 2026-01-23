@@ -97,3 +97,27 @@
 #music-toggle-btn:hover, #start-leaderboard-btn:hover, #about-btn:hover {
     background: rgba(0,0,0,0.5);
 }
+
+#vs-back-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    color: var(--text-color);
+    cursor: pointer;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    pointer-events: auto;
+}
+
+#vs-back-btn:hover {
+    background: rgba(0,0,0,0.5);
+}

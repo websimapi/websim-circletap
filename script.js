@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tapToRestart: document.getElementById('tap-to-restart'),
 
         // VS Elements
+        vsBackBtn: document.getElementById('vs-back-btn'),
         vsModeBtn: document.getElementById('vs-mode-btn'),
         playerHeartsContainer: document.getElementById('player-hearts-container'),
         playerHearts: document.getElementById('player-hearts'),
@@ -138,9 +139,23 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.vsModeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             handleFirstInteraction();
-            ui.showVSZenScreen();
             vsManager.startSeeking();
+            ui.showVSZenScreen();
             game.start('easy'); // Start Zen mode logic internally set in vsManager
+        });
+    }
+
+    // VS Back Button
+    if (elements.vsBackBtn) {
+        elements.vsBackBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleFirstInteraction();
+            if (game.mode === 'zen') {
+                vsManager.cancelSeeking();
+                ui.showStartMenu();
+                game.setMode('standard');
+                game.reset();
+            }
         });
     }
 
