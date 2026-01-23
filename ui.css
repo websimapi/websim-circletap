@@ -27,6 +27,10 @@
     transition: opacity 0.3s;
 }
 
+#difficulty-indicator.hidden {
+    display: none !important;
+}
+
 #difficulty-indicator .bar {
     width: 6px;
     height: 16px;
@@ -103,6 +107,249 @@
 .diff-btn[data-difficulty="hard"].active .diff-icon .bar:nth-child(1),
 .diff-btn[data-difficulty="hard"].active .diff-icon .bar:nth-child(2),
 .diff-btn[data-difficulty="hard"].active .diff-icon .bar:nth-child(3) { background-color: var(--fail-color); }
+
+.vs-menu-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    pointer-events: auto;
+    position: relative;
+    z-index: 10;
+}
+
+.vs-btn {
+    background: linear-gradient(45deg, #e94560, #2a0a10);
+    border: 1px solid #e94560;
+    width: 200px;
+    padding: 12px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+    pointer-events: auto;
+}
+
+.vs-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
+}
+
+.vs-btn .vs-icon {
+    font-size: 1.4rem;
+}
+
+.vs-lobby-preview {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 40px;
+    padding-left: 5px;
+}
+
+.lobby-avatar-container {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    margin-left: -14px; /* Overlap stack */
+    border-radius: 50%;
+    transition: transform 0.2s, z-index 0.2s;
+    background-color: var(--bg-color); 
+    flex-shrink: 0;
+}
+
+.lobby-avatar-container:first-child {
+    margin-left: 0;
+}
+
+.lobby-avatar-container:hover {
+    transform: scale(1.15) translateY(-2px);
+    z-index: 100 !important;
+}
+
+.lobby-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid #555;
+    object-fit: cover;
+    display: block;
+}
+
+/* Waiting / Seeking - Green/Gold Pulse */
+.lobby-avatar.status-seeking {
+    border-color: var(--success-color);
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    animation: pulse-ring-green 2s infinite;
+}
+
+/* Playing - Red/Orange Pulse */
+.lobby-avatar.status-playing {
+    border-color: #e94560;
+    box-shadow: 0 0 6px rgba(233, 69, 96, 0.4);
+}
+
+.lobby-overflow {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #2a2a2a;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border: 2px solid #444;
+    margin-left: -14px;
+    z-index: 0;
+    position: relative;
+    flex-shrink: 0;
+}
+
+@keyframes pulse-ring-green {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(76, 175, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+/* VS Mode Elements */
+#player-hearts-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0px;
+}
+
+#opponent-view {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 20;
+    display: flex;
+    flex-direction: row; /* Canvas to the right of info */
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.opponent-info {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+}
+
+.opponent-identity {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.vs-pfp {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #fff;
+}
+
+#opponent-name {
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.vs-score-text {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    margin-top: -2px; /* Pull up to hug the hearts closer */
+}
+
+#opponent-canvas {
+    width: 60px; /* Slightly smaller to fit layout better */
+    height: 60px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+    align-self: flex-start;
+}
+
+.hearts-container {
+    display: flex;
+    gap: 5px;
+}
+
+.hearts-container.small {
+    transform: scale(0.6);
+    transform-origin: top left;
+    height: 20px; /* Limit height so scale doesn't leave excess phantom space below */
+    margin-bottom: 2px;
+}
+
+.heart-wrapper {
+    width: 30px;
+    height: 30px;
+    position: relative;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+
+.heart-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.heart-bg {
+    fill: #330000;
+    stroke: #550000;
+    stroke-width: 2;
+}
+
+.heart-fill {
+    fill: #ff0000;
+}
+
+.heart-fill-rect {
+    transition: y 0.2s linear; /* Animated drain */
+}
+
+@keyframes pulse-heart {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+.heart-pulsing {
+    animation: pulse-heart 1s infinite ease-in-out;
+}
+
+#vs-status-display {
+    position: absolute;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.2rem;
+    color: #ffd700;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.6);
+    padding: 8px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+    z-index: 5;
+}
 
 @media (hover: hover) {
     .diff-btn:hover:not(.active) {

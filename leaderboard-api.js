@@ -1,4 +1,4 @@
-const room = new WebsimSocket();
+export const room = new WebsimSocket();
 const OLD_COLLECTION_NAME = 'leaderboard_scores_v3';
 const NEW_COLLECTION_NAME = 'leaderboard_profiles_v2';
 const LOCAL_STORAGE_KEY = 'circleTapPendingScores';
@@ -155,7 +155,16 @@ export async function submitScore(lastGameData, onSuccess, onError) {
             timestamp: gameDataForDb.timestamp,
         };
 
-        const difficulty = gameDataForDb.difficulty;
+        if (gameDataForDb.mode === 'vs') {
+            newScore.result = gameDataForDb.result; // 'win' or 'loss'
+            newScore.opponent = gameDataForDb.opponent;
+        }
+
+        let difficulty = gameDataForDb.difficulty; // 'easy', 'medium', 'hard', 'vs'
+        if (gameDataForDb.mode === 'vs') {
+            difficulty = 'vs';
+        }
+
         const profileCollection = room.collection(NEW_COLLECTION_NAME);
 
         // Step 3: Find user's existing profile right before submission
@@ -175,13 +184,23 @@ export async function submitScore(lastGameData, onSuccess, onError) {
 
         // Step 4: Update or create profile
         if (userProfile) {
-            const updatedScores = userProfile[difficulty] ? [...userProfile[difficulty], newScore] : [newScore];
+            // Check if 'vs' array exists in profile, if not handled gracefully
+            const currentScores = userProfile[difficulty] || [];
+            const updatedScores = [...currentScores, newScore];
+            
+            // Limit history length to prevent document getting too large (e.g., 50)
+            if (updatedScores.length > 50) {
+                 updatedScores.sort((a,b) => b.score - a.score); // Keep best
+                 updatedScores.length = 50;
+            }
+
             await profileCollection.update(userProfile.id, { [difficulty]: updatedScores });
         } else {
             const newProfile = {
                 easy: [],
                 medium: [],
                 hard: [],
+                vs: [], // Ensure structure exists
                 [difficulty]: [newScore],
             };
             await profileCollection.create(newProfile);

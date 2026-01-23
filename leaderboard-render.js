@@ -16,6 +16,11 @@ export function renderDetailHeader(userProfile) {
         }
     });
 
+    // VS Stats
+    const vsScores = userProfile.vs || [];
+    const vsWins = vsScores.filter(s => s.result === 'win').length;
+    const vsTotal = vsScores.length;
+
     return `
         <div class="mini-profile-card">
             <div class="mini-profile-avatar-container">
@@ -27,6 +32,7 @@ export function renderDetailHeader(userProfile) {
                     <div class="stat-pill easy" title="Easy Best"><span class="l">E</span><span class="v">${bestScores.easy}</span></div>
                     <div class="stat-pill medium" title="Medium Best"><span class="l">M</span><span class="v">${bestScores.medium}</span></div>
                     <div class="stat-pill hard" title="Hard Best"><span class="l">H</span><span class="v">${bestScores.hard}</span></div>
+                    <div class="stat-pill vs" title="VS Wins"><span class="l">VS</span><span class="v">${vsWins}</span></div>
                 </div>
             </div>
         </div>
@@ -90,7 +96,22 @@ export function renderMyScores(userProfile) {
         `;
     }).join('');
 
-    return headerHtml + cardsHtml;
+    // VS Card
+    const vsScores = userProfile.vs || [];
+    const vsWins = vsScores.filter(s => s.result === 'win').length;
+    const vsCardHtml = `
+        <div class="leaderboard-entry-wrapper my-score-entry" data-difficulty="vs">
+            <div class="my-score-card" style="border-left: 4px solid #e94560;">
+                <div class="diff-title">VS Mode</div>
+                <div class="diff-stats">
+                    <span class="best-score" style="color: #e94560;">Wins: ${vsWins}</span>
+                    <span class="games-count">${vsScores.length} Games</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return headerHtml + cardsHtml + vsCardHtml;
 }
 
 function getOrdinal(n) {
@@ -144,11 +165,29 @@ export function renderDetailList(scores, currentPage = 1, itemsPerPage = 10, con
 
     return scoresOnPage.map((game, index) => {
         const actualIndex = startIndex + index;
+        const isVs = game.opponent !== undefined;
+        
+        let detailsHtml;
+        if (isVs) {
+            const result = game.result || 'ended';
+            const resultColor = result === 'win' ? 'var(--success-color)' : 'var(--fail-color)';
+            detailsHtml = `
+                <span class="score-entry-score" style="color: ${resultColor}">
+                    ${result.toUpperCase()} vs ${game.opponent || 'Unknown'}
+                </span>
+                <span class="score-entry-level">Level: ${game.level || 1}</span>
+            `;
+        } else {
+             detailsHtml = `
+                <span class="score-entry-score">Score: ${game.score}</span>
+                <span class="score-entry-level">Level: ${game.level || 1}</span>
+            `;
+        }
+
         return `
         <div class="score-entry">
             <div class="score-details">
-                <span class="score-entry-score">Score: ${game.score}</span>
-                <span class="score-entry-level">Level: ${game.level || 1}</span>
+                ${detailsHtml}
                 <small class="score-entry-date">${new Date(game.timestamp).toLocaleDateString()}</small>
             </div>
             ${game.replayDataUrl ? `

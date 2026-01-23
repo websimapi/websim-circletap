@@ -15,10 +15,11 @@ const blobToDataURL = (blob) => {
   });
 };
 const prefetchAvatar = async (user) => {
-  if (!user || !user.avatar_url) {
+  if (!user) return null;
+  const originalUrl = user.avatar_url || user.avatarUrl;
+  if (!originalUrl) {
     return null;
   }
-  const originalUrl = user.avatar_url;
   const sources = [
     `https://api.cors.lol/?url=${encodeURIComponent(originalUrl)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(originalUrl)}`,
@@ -46,6 +47,7 @@ const renderPlayer = async (data) => {
     return;
   }
   const prefetchedAvatarUrl = data.config && data.config.currentUser ? await prefetchAvatar(data.config.currentUser) : null;
+  const prefetchedOpponentAvatarUrl = data.config && data.config.opponent ? await prefetchAvatar(data.config.opponent) : null;
   const durationInSeconds = (data.frames[data.frames.length - 1].timestamp - data.frames[0].timestamp) / 1e3;
   const durationInFrames = Math.ceil(durationInSeconds * 30) + 90;
   root.render(
@@ -60,7 +62,7 @@ const renderPlayer = async (data) => {
         loop: true,
         controls: true,
         autoplay: true,
-        inputProps: { replayData: data, prefetchedAvatarUrl },
+        inputProps: { replayData: data, prefetchedAvatarUrl, prefetchedOpponentAvatarUrl },
         style: { width: "100%", height: "100%" },
         numberOfSharedAudioTags: 100
       },
@@ -68,7 +70,7 @@ const renderPlayer = async (data) => {
       false,
       {
         fileName: "<stdin>",
-        lineNumber: 60,
+        lineNumber: 64,
         columnNumber: 7
       }
     )

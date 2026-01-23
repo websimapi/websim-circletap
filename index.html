@@ -10,13 +10,43 @@
 </head>
 <body>
     <canvas id="background-canvas"></canvas>
+    
+    <!-- Opponent View (VS Mode) -->
+    <div id="opponent-view" class="hidden">
+        <div class="opponent-info">
+            <div class="opponent-identity">
+                <img id="opponent-pfp" class="vs-pfp" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+                <span id="opponent-name">Waiting...</span>
+            </div>
+            <div class="hearts-container small" id="opponent-hearts">
+                <!-- Generated in JS -->
+            </div>
+            <div id="opponent-score" class="vs-score-text">Score: 0</div>
+        </div>
+        <canvas id="opponent-canvas" width="100" height="100"></canvas>
+    </div>
+
+    <!-- Player Hearts (VS Mode) -->
+    <div id="player-hearts-container" class="hidden">
+        <div class="hearts-container" id="player-hearts">
+            <!-- Generated in JS -->
+        </div>
+        <div id="player-vs-score" class="vs-score-text">Score: 0</div>
+    </div>
+
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
         <div id="ui-container">
+            <!-- Standard Difficulty Indicator -->
             <div id="difficulty-indicator" data-difficulty="easy" title="Difficulty: Easy">
                 <div class="bar"></div><div class="bar"></div><div class="bar"></div>
             </div>
+
             <div id="score-display" class="hidden">Score: <span id="score">0</span></div>
+            
+            <!-- VS Status Display -->
+            <div id="vs-status-display" class="hidden">Waiting for opponent...</div>
+            
             <div id="level-display" class="hidden">1</div>
             
             <div id="start-menu">
@@ -40,6 +70,15 @@
                         <div class="diff-icon"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
                         <span>Hard</span>
                     </button>
+                </div>
+                <!-- VS Mode Button -->
+                <div class="vs-menu-wrapper">
+                    <button id="vs-mode-btn" class="vs-btn">
+                        <span class="vs-icon">⚔️</span> VS MODE
+                    </button>
+                    <div id="vs-lobby-preview" class="vs-lobby-preview">
+                        <!-- Populated dynamically -->
+                    </div>
                 </div>
             </div>
 

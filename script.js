@@ -5,6 +5,7 @@ import { showReplay, hideReplay } from './replay.js';
 import { playBackgroundMusic, fadeInMusic, fadeOutMusic, setMusicMuted, setSFXMuted } from './audio.js';
 import { LeaderboardController } from './leaderboard-controller.js';
 import { InputController } from './input-controller.js';
+import { VSManager } from './vs-manager.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
@@ -47,11 +48,23 @@ document.addEventListener('DOMContentLoaded', () => {
         detailHeaderContent: document.getElementById('detail-header-content'),
 
         musicToggleBtn: document.getElementById('music-toggle-btn'),
-        tapToRestart: document.getElementById('tap-to-restart')
+        tapToRestart: document.getElementById('tap-to-restart'),
+
+        // VS Elements
+        vsModeBtn: document.getElementById('vs-mode-btn'),
+        playerHeartsContainer: document.getElementById('player-hearts-container'),
+        playerHearts: document.getElementById('player-hearts'),
+        opponentView: document.getElementById('opponent-view'),
+        difficultyIndicator: document.getElementById('difficulty-indicator'),
+        vsStatusDisplay: document.getElementById('vs-status-display')
     };
 
     const game = new Game(canvas);
     const ui = new UIController(elements);
+    const vsManager = new VSManager(game, ui);
+
+    // Link game to VS manager
+    game.vsManagerUpdate = (dt) => vsManager.updateGameLoop(dt);
     
     let replayOrigin = 'gameover'; // 'gameover' or 'leaderboard'
     let leaderboardOrigin = 'start';
@@ -77,9 +90,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Set up game callbacks
     game.onScoreUpdate = (score) => ui.updateScore(score);
-    game.onLevelUp = (level, isInitial) => ui.updateLevel(level, isInitial);
+    game.onLevelUp = (level, isInitial) => {
+        ui.updateLevel(level, isInitial);
+        // Sync level for drain logic handled in game loop
+    };
+    
+    // Hook for VS health updates
+    const originalGameLoop = game.gameLoop.bind(game);
+    game.gameLoop = (t) => {
+        originalGameLoop(t);
+        if (game.mode === 'vs') {
+            ui.updatePlayerHearts(game.health);
+        }
+    };
+
     game.onGameOver = (gameData) => {
-        ui.showGameOverMenu(gameData.score);
+        if (gameData.mode === 'vs') {
+            const resultText = gameData.result === 'win' ? 'VICTORY' : 'DEFEAT';
+            ui.showGameOverMenu(resultText);
+            elements.finalScoreEl.textContent = resultText;
+            elements.finalScoreEl.style.color = gameData.result === 'win' ? 'var(--success-color)' : 'var(--fail-color)';
+        } else {
+            ui.showGameOverMenu(gameData.score);
+            elements.finalScoreEl.style.color = '';
+        }
     };
 
     // Difficulty Selection
@@ -94,10 +128,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // VS Mode Button
+    if (elements.vsModeBtn) {
+        elements.vsModeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleFirstInteraction();
+            ui.showVSZenScreen();
+            vsManager.startSeeking();
+            game.start('easy'); // Start Zen mode logic internally set in vsManager
+        });
+    }
+
     // Tap to Start
     elements.startMenu.addEventListener('click', (e) => {
-        // Prevent starting if clicking on difficulty buttons (just in case stopPropagation fails or structure changes)
-        if (e.target.closest('.difficulty-selector')) return;
+        // Prevent starting if clicking on difficulty buttons or VS button
+        if (e.target.closest('.difficulty-selector') || e.target.closest('.vs-btn')) return;
         
         handleFirstInteraction();
         game.start(currentDifficulty);
@@ -114,13 +159,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ui.clearTimeouts();
         game.reset();
-        ui.showGameScreen();
-        game.start(currentDifficulty);
+        
+        if (game.mode === 'vs') {
+             ui.showStartMenu(); // VS goes back to menu to find new opponent
+        } else {
+            ui.showGameScreen();
+            game.start(currentDifficulty);
+        }
     });
 
     // Home button
     elements.homeBtn.addEventListener('click', () => {
+        if (game.mode === 'zen' || game.mode === 'vs') {
+            vsManager.cancelSeeking();
+        }
         ui.clearTimeouts();
+        game.setMode('standard');
         game.reset();
         ui.showStartMenu();
     });

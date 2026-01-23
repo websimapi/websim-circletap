@@ -1,7 +1,10 @@
 import { hsl } from 'd3-color';
 import { getHslStringForLevel, isAngleInArc, getComputedColors } from './utils.js';
-import { initAudio, playSuccess, playFail, playStart, getAudioData } from './audio.js';
-import { submitScore } from './leaderboard-api.js'; // This seems unused, but let's keep it in case it's needed elsewhere
+import { initAudio, playSuccess, playFail, playStart } from './audio.js';
+// removed draw-related imports
+
+import { GameRenderer } from './game-renderer.js';
+import { difficulties } from './game-config.js';
 
 // A simplified interface to the LocalStorageSync class in leaderboard.js
 const localScoreManager = {
@@ -19,20 +22,16 @@ const localScoreManager = {
     }
 };
 
-export const difficulties = {
-    easy: { speed: 1.2 * Math.PI, size: 0.4, trackWidthFactor: 0.12 }, 
-    medium: { speed: 1.5 * Math.PI, size: 0.25, trackWidthFactor: 0.07 },
-    hard: { speed: 1.8 * Math.PI, size: 0.15, trackWidthFactor: 0.035 }
-};
+// removed difficulties constant (moved to game-config.js)
 
 export class Game {
     constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
         this.colors = getComputedColors();
         
-        // Canvas/Drawing state
-        this.devicePixelRatio = window.devicePixelRatio || 1;
+        // Renderer handles canvas and drawing
+        this.renderer = new GameRenderer(canvas, this.colors);
+        
+        // Visual dimensions for logic (synced from renderer)
         this.size = 0;
         this.radius = 0;
         this.lineWidth = 0;
@@ -61,10 +60,33 @@ export class Game {
         this.onGameOver = null;
         this.onScoreUpdate = null;
         this.onLevelUp = null;
+        
+        // VS Mode props
+        this.mode = 'standard'; // 'standard', 'zen', 'vs'
+        this.health = 300;
+        this.maxHealth = 300;
+        this.opponentLevel = 1;
+        this.vsManagerUpdate = null; // Callback
 
         // Start idle animation loop
         this.lastFrameTime = performance.now();
         this.gameLoop(this.lastFrameTime);
+    }
+
+    setMode(mode) {
+        this.mode = mode;
+        if (mode === 'zen') {
+             this.gameState = 'playing'; // Auto start for zen
+             this.setDifficulty('easy');
+             this.level = 1;
+             this.generateNewTarget();
+             this.currentColorHsl = hsl(getHslStringForLevel(1));
+             this.targetColorHsl = hsl(getHslStringForLevel(1));
+        }
+    }
+
+    setOpponentLevel(level) {
+        this.opponentLevel = level;
     }
 
     setDifficulty(difficulty) {
@@ -79,28 +101,13 @@ export class Game {
     }
 
     resizeCanvas() {
-        const parent = this.canvas.parentElement;
-        const parentWidth = parent.offsetWidth;
-        const parentHeight = parent.offsetHeight;
+        const dimensions = this.renderer.resize(this.currentDifficulty);
+        if (dimensions) {
+            this.size = dimensions.size;
+            this.radius = dimensions.radius;
+            this.lineWidth = dimensions.lineWidth;
+        }
 
-        // Determine the smallest dimension to ensure the circle fits
-        // This is flexible for both portrait (mobile) and landscape (desktop/inline) views,
-        // maximizing the game size within the context.
-        const minDimension = Math.min(parentWidth, parentHeight);
-        
-        // Use a large portion of the available smallest dimension
-        const canvasSize = minDimension * 0.9;
-        
-        this.canvas.style.width = `${canvasSize}px`;
-        this.canvas.style.height = `${canvasSize}px`;
-
-        this.size = canvasSize * this.devicePixelRatio;
-        this.canvas.width = this.size;
-        this.canvas.height = this.size;
-        
-        this.radius = this.size * 0.4;
-        this.lineWidth = this.size * difficulties[this.currentDifficulty].trackWidthFactor;
-        
         if (this.gameState !== 'playing') {
             this.draw();
         }
@@ -110,7 +117,7 @@ export class Game {
         this.targetStartAngle = Math.random() * Math.PI * 2;
     }
 
-    start(difficulty) {
+    start(difficulty, opponentInfo = null) {
         this.currentDifficulty = difficulty;
         this.resizeCanvas();
 
@@ -125,13 +132,19 @@ export class Game {
         this.angle = -Math.PI / 2;
         this.direction = 1;
 
-        this.level = 1; // Start at level 1, not 0
+        this.level = 1; 
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = 1;
         this.failTap = null;
         
         this.currentColorHsl = hsl(getHslStringForLevel(1));
         this.targetColorHsl = hsl(getHslStringForLevel(1));
+
+        // VS specific reset
+        if (this.mode === 'vs') {
+            this.health = 300;
+            this.opponentLevel = 1;
+        }
 
         this.generateNewTarget();
         
@@ -141,14 +154,16 @@ export class Game {
             difficulty: this.currentDifficulty,
             difficulties,
             colors: this.colors,
+            mode: this.mode,
+            opponent: opponentInfo
         };
         
-        // Loop continues, just state update
         if (this.onScoreUpdate) this.onScoreUpdate(this.score);
         if (this.onLevelUp) this.onLevelUp(this.level, true); 
     }
 
-    gameOver() {
+    gameOver(message = null, result = null, opponentName = null) {
+        this.replayConfig.result = result;
         playFail();
         this.gameState = 'gameover';
         
@@ -158,155 +173,57 @@ export class Game {
             targetSize: this.targetSize,
             score: this.score,
             level: this.level, 
+            health: this.health,
             targetColor: this.currentColorHsl.toString(),
             success: false,
             timestamp: performance.now(),
+            opponent: this.opponentState ? {...this.opponentState} : null
         });
 
         this.lastGameData = {
             score: this.score,
             level: this.level,
             difficulty: this.currentDifficulty,
+            mode: this.mode,
             replayData: {
                 frames: this.replayFrames,
                 config: this.replayConfig,
             },
             timestamp: new Date().toISOString(),
+            // VS extras
+            result: result,
+            opponent: opponentName
         };
 
-        // Save to local storage immediately, just in case
-        localScoreManager.addScore(this.lastGameData);
+        // Save to local storage immediately, just in case (only standard mode)
+        if (this.mode === 'standard') {
+            localScoreManager.addScore(this.lastGameData);
+        }
 
         if (this.onGameOver) this.onGameOver(this.lastGameData);
     }
 
-    drawVisualizer(pulseAmount) {
-        // Only draw if there's a noticeable beat
-        if (pulseAmount <= 0.1) return;
-
-        const centerX = this.size / 2;
-        const centerY = this.size / 2;
-        const outerRadius = this.radius + this.lineWidth / 2;
-        const innerRadius = this.radius - this.lineWidth / 2;
-
-        const pulseColor = this.currentColorHsl.copy({opacity: pulseAmount * 0.3});
-
-        // --- Outer Pulse ---
-        const maxOuterPulse = this.lineWidth * 0.8;
-        const pulseOuterRadius = outerRadius + (pulseAmount * maxOuterPulse);
-        
-        const outerGradient = this.ctx.createRadialGradient(centerX, centerY, outerRadius, centerX, centerY, pulseOuterRadius);
-        outerGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        outerGradient.addColorStop(0.8, pulseColor.toString());
-        outerGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        this.ctx.fillStyle = outerGradient;
-        this.ctx.fillRect(0, 0, this.size, this.size);
-
-        // --- Inner Pulse ---
-        const maxInnerPulse = innerRadius * 0.7; // How far the glow goes inward
-        const pulseInnerRadius = innerRadius - (pulseAmount * maxInnerPulse);
-
-        const innerGradient = this.ctx.createRadialGradient(centerX, centerY, pulseInnerRadius, centerX, centerY, innerRadius);
-        innerGradient.addColorStop(0, 'rgba(0,0,0,0)');
-        innerGradient.addColorStop(0.5, pulseColor.toString());
-        innerGradient.addColorStop(1, 'rgba(0,0,0,0)');
-
-        this.ctx.fillStyle = innerGradient;
-        this.ctx.fillRect(0, 0, this.size, this.size);
-    }
+    // removed drawVisualizer() {} - logic moved to GameRenderer
 
     draw() {
-        this.ctx.clearRect(0, 0, this.size, this.size);
-
-        const audioData = getAudioData();
-        let pulseAmount = 0;
-        if (audioData) {
-            let bass = 0;
-            for (let i = 0; i < 5; i++) {
-                bass += audioData[i];
-            }
-            bass /= 5;
-            pulseAmount = (bass / 255);
-            this.drawVisualizer(pulseAmount);
-        }
-
-        const lastFrame = this.replayFrames[this.replayFrames.length-1];
-        if(lastFrame) {
-            lastFrame.pulseAmount = pulseAmount;
-        }
-
-        this.ctx.save();
-        this.ctx.translate(this.size / 2, this.size / 2);
-
-        // Draw track
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-        this.ctx.strokeStyle = this.colors.secondary;
-        this.ctx.lineWidth = this.lineWidth;
-        this.ctx.lineCap = 'butt';
-        this.ctx.stroke();
-
-        // Draw target zone
-        if (this.targetSize > 0) {
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, this.radius, this.targetStartAngle, this.targetStartAngle + this.targetSize);
-            this.ctx.strokeStyle = this.currentColorHsl.toString();
-            this.ctx.lineWidth = this.lineWidth * 0.95;
-            this.ctx.lineCap = 'round';
-            this.ctx.stroke();
-        }
-
-        // Draw fail tap indicator
-        if (this.failTap) {
-            const age = (performance.now() - this.failTap.timestamp) / 1000;
-            if (age < 3) {
-                const opacity = Math.max(0, 1 - (age / 3));
-                const failColor = hsl(this.colors.fail);
-                failColor.opacity = opacity;
-                const failColorStr = failColor.toString();
-
-                this.ctx.save();
-                this.ctx.rotate(this.failTap.angle);
-                
-                // Ghost cursor line
-                this.ctx.beginPath();
-                this.ctx.moveTo(this.radius - this.lineWidth / 2, 0);
-                this.ctx.lineTo(this.radius + this.lineWidth / 2, 0);
-                this.ctx.strokeStyle = failColorStr;
-                this.ctx.lineWidth = this.lineWidth / 2.5;
-                this.ctx.lineCap = 'butt';
-                this.ctx.stroke();
-
-                // 'X' mark for clarity
-                const xSize = this.lineWidth * 0.4;
-                this.ctx.translate(this.radius, 0);
-                this.ctx.beginPath();
-                this.ctx.moveTo(-xSize, -xSize);
-                this.ctx.lineTo(xSize, xSize);
-                this.ctx.moveTo(xSize, -xSize);
-                this.ctx.lineTo(-xSize, xSize);
-                this.ctx.strokeStyle = failColorStr;
-                this.ctx.lineWidth = Math.max(2, this.size * 0.005);
-                this.ctx.stroke();
-
-                this.ctx.restore();
-            } else {
-                this.failTap = null;
-            }
-        }
-
-        // Draw rotating line
-        this.ctx.rotate(this.angle);
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.radius - this.lineWidth / 2, 0);
-        this.ctx.lineTo(this.radius + this.lineWidth / 2, 0);
-        this.ctx.strokeStyle = this.colors.fail;
-        this.ctx.lineWidth = this.lineWidth / 2.5;
-        this.ctx.lineCap = 'butt';
-        this.ctx.stroke();
+        // Collect state to pass to renderer
+        const replayFrame = this.replayFrames[this.replayFrames.length-1];
         
-        this.ctx.restore();
+        const renderState = {
+            currentColorHsl: this.currentColorHsl,
+            targetSize: this.targetSize,
+            targetStartAngle: this.targetStartAngle,
+            failTap: this.failTap,
+            angle: this.angle,
+            replayFrame: replayFrame
+        };
+
+        const isShowingFail = this.renderer.draw(renderState);
+        
+        // Sync failTap expiration if renderer says it's done
+        if (this.failTap && !isShowingFail) {
+            this.failTap = null;
+        }
     }
 
     gameLoop(currentTime) {
@@ -323,15 +240,39 @@ export class Game {
         if (this.gameState === 'playing') {
             this.angle += this.speed * this.direction * deltaTime;
             
+            // VS Logic: Drain
+            if (this.mode === 'vs') {
+                const DRAIN_RATE_BASE = 10;
+                
+                // If I am ahead, drain opponent (logic handled mostly by them, but I regenerate)
+                if (this.level > this.opponentLevel) {
+                     this.health = Math.min(this.maxHealth, this.health + (DRAIN_RATE_BASE / 2) * deltaTime);
+                } 
+                
+                // If opponent is ahead, I drain
+                if (this.opponentLevel > this.level) {
+                    const diff = this.opponentLevel - this.level;
+                    const drain = DRAIN_RATE_BASE * diff * deltaTime;
+                    this.health = Math.max(0, this.health - drain);
+                }
+
+                // Snap to 0 if very low to ensure death triggers reliably
+                if (this.health < 1) this.health = 0;
+
+                if (this.vsManagerUpdate) this.vsManagerUpdate(deltaTime);
+            }
+
             this.replayFrames.push({
                 angle: this.angle,
                 targetStartAngle: this.targetStartAngle,
                 targetSize: this.targetSize,
                 score: this.score,
                 level: this.level,
+                health: this.health,
                 targetColor: this.currentColorHsl.toString(),
                 timestamp: currentTime,
                 pulseAmount: 0,
+                opponent: this.opponentState ? {...this.opponentState} : null
             });
         } else if (this.gameState === 'start' || this.gameState === 'gameover') {
             // Idle spin
@@ -378,7 +319,33 @@ export class Game {
                 angle: this.angle,
                 timestamp: performance.now()
             };
-            this.gameOver();
+
+            if (this.mode === 'standard') {
+                this.gameOver();
+            } else if (this.mode === 'zen') {
+                playFail();
+                // Zen penalty: reduced score, drop level
+                this.score = Math.max(0, this.score - 5);
+
+                // Reduce speed to help recover (clamped to base speed)
+                this.speed = Math.max(difficulties[this.currentDifficulty].speed, this.speed / 1.1);
+
+                if (this.level > 1) {
+                    this.level--;
+                    this.tapsThisLevel = 0;
+                    this.tapsForNextLevel = this.level;
+                    this.targetColorHsl = hsl(getHslStringForLevel(this.level));
+                    if (this.onLevelUp) this.onLevelUp(this.level);
+                }
+                this.generateNewTarget();
+                if (this.onScoreUpdate) this.onScoreUpdate(this.score);
+            } else if (this.mode === 'vs') {
+                playFail();
+                // Lose 1 full heart
+                this.health = Math.max(0, this.health - 100);
+                this.generateNewTarget();
+                // Check death is handled in update loop via vsManagerUpdate hook usually
+            }
         }
     }
 
