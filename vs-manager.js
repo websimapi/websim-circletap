@@ -116,19 +116,24 @@ export class VSManager {
         const myId = room.clientId;
 
         Object.entries(presence).forEach(([clientId, data]) => {
-            // Include everyone in VS mode, except potentially myself if I want to see "others"
-            // But usually seeing myself confirms I am in the pool. 
-            // However, the prompt implies "people waiting", so let's show all active VS users.
-            if (data.vs_mode_active && clientId !== myId) {
-                const peer = room.peers[clientId];
-                if (peer) {
-                    lobbyUsers.push({
-                        username: peer.username,
-                        avatarUrl: peer.avatarUrl,
-                        status: data.status, // 'seeking' or 'playing'
-                        clientId: clientId
-                    });
-                }
+            // Filter out myself
+            if (clientId === myId) return;
+
+            // Filter out non-VS users
+            if (!data.vs_mode_active) return;
+
+            // Only show users who are strictly waiting (seeking)
+            // Busy users (playing/counting_down) are filtered out as requested
+            if (data.status !== 'seeking') return;
+
+            const peer = room.peers[clientId];
+            if (peer) {
+                lobbyUsers.push({
+                    username: peer.username,
+                    avatarUrl: peer.avatarUrl,
+                    status: data.status,
+                    clientId: clientId
+                });
             }
         });
 
