@@ -365,6 +365,7 @@ export class Game {
         this.level = 1;
         this.tapsThisLevel = 0;
         this.tapsForNextLevel = 1;
+        this.health = 300; // Reset health mostly for VS mode hygiene
         this.failTap = null;
         this.currentColorHsl = hsl(getHslStringForLevel(1));
         

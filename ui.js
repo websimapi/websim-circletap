@@ -101,6 +101,11 @@ export class UIController {
         }
     }
 
+    updateOpponentLevel(level) {
+        const el = document.getElementById('opponent-level');
+        if (el) el.textContent = level;
+    }
+
     updateLevel(level, isInitial = false) {
         const levelDisplay = this.elements.levelDisplay;
         
@@ -268,6 +273,8 @@ export class UIController {
             oppHeartsEl.innerHTML += generateHeartSVG('opp', i);
         }
         
+        this.updateOpponentLevel(1);
+
         // Start updates loop/animation if needed
         this.animateHearts(300, 'player');
         this.animateHearts(300, 'opp');
@@ -300,6 +307,7 @@ export class UIController {
             if (wrapper) {
                 if (percentage === 1) {
                     wrapper.classList.add('heart-pulsing');
+                    wrapper.style.filter = ''; // Ensure we clear grayscale if coming from 0
                 } else if (percentage === 0) {
                     wrapper.classList.remove('heart-pulsing');
                     wrapper.style.filter = 'grayscale(1) brightness(0.5)';

@@ -34,7 +34,17 @@ export class VSManager {
         this.renderLoop();
     }
 
+    resetState() {
+        this.opponent = null;
+        this.opponentId = null;
+        this.matchId = null;
+        this.currentOpponentState = null;
+        this.targetOpponentState = null;
+        this.ui.resetVSUI();
+    }
+
     startSeeking() {
+        this.resetState();
         this.state = 'seeking';
         this.game.setMode('zen'); // Start Zen mode while waiting
         this.ui.updateVSStatus('Searching for opponent...', true);
@@ -42,7 +52,9 @@ export class VSManager {
         room.updatePresence({
             status: 'seeking',
             vs_level: this.game.level,
-            vs_mode_active: true
+            vs_mode_active: true,
+            vs_health: 300,
+            vs_score: 0
         });
     }
 
@@ -50,7 +62,7 @@ export class VSManager {
         this.state = 'idle';
         this.game.setMode('standard');
         this.ui.updateVSStatus('', false);
-        this.opponent = null;
+        this.resetState();
         
         room.updatePresence({
             status: 'idle',
@@ -142,6 +154,10 @@ export class VSManager {
         this.opponentId = opponentId;
         this.matchId = matchId;
         this.state = 'counting_down';
+        
+        // Clear any previous interpolation state
+        this.currentOpponentState = null;
+        this.targetOpponentState = null;
 
         this.ui.setupVSMatch(this.opponent);
         
@@ -193,11 +209,16 @@ export class VSManager {
 
         const oppData = presence[this.opponentId];
         // Handle undefined health (initial state) by defaulting to 300, but allow 0 (death)
-        const oppHealth = oppData.vs_health !== undefined ? oppData.vs_health : 300;
+        // If we are counting down, force 300 to avoid reading stale end-game state from previous match
+        let oppHealth = oppData.vs_health !== undefined ? oppData.vs_health : 300;
+        if (this.state === 'counting_down') {
+            oppHealth = 300;
+        }
         
         // Update opponent UI
         this.ui.updateOpponentHearts(oppHealth);
         this.ui.updateOpponentScore(oppData.vs_score || 0);
+        this.ui.updateOpponentLevel(oppData.vs_level || 1);
         
         // Logic for drain
         if (this.state === 'playing') {
@@ -279,6 +300,7 @@ export class VSManager {
     }
 
     endMatch(result) { // 'win' or 'loss'
+        if (this.state === 'ended') return;
         this.state = 'ended';
         const opponentName = this.opponent ? this.opponent.username : 'Unknown';
 
