@@ -53,6 +53,11 @@
             <div id="level-display" class="hidden">1</div>
             
             <div id="start-menu">
+                <button id="about-btn" class="icon-btn" aria-label="About">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+                    </svg>
+                </button>
                 <button id="start-leaderboard-btn" class="icon-btn" aria-label="Leaderboard">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M3 13h3v7H3v-7zm5-2h3v9H8v-9zm5-6h3v15h-3V5z"></path>
@@ -141,6 +146,44 @@
         <div id="player-root"></div>
         <button id="close-replay-btn" aria-label="Close replay">&times;</button>
     </div>
+    <div id="about-view" class="hidden">
+        <div class="about-content">
+            <button id="close-about-btn" aria-label="Close About">&times;</button>
+            <h2>About Project</h2>
+            <p>This project was created on <a href="https://websim.ai" target="_blank">WebSim.ai</a>.</p>
+            <p>It utilizes cutting-edge AI tools for assets and features:</p>
+            <div class="logo-grid">
+                <div class="logo-item">
+                    <div class="logo-img-container"><img src="logo_websim.png" alt="WebSim"></div>
+                    <span>WebSim</span>
+                </div>
+                <div class="logo-item">
+                    <div class="logo-img-container"><img src="logo_remotion.png" alt="Remotion"></div>
+                    <span>Remotion</span>
+                    <small>Instant Replays</small>
+                </div>
+                <div class="logo-item">
+                    <div class="logo-img-container"><img src="logo_sonauto.png" alt="Sonauto"></div>
+                    <span>Sonauto</span>
+                    <small>Music Generation</small>
+                </div>
+                <div class="logo-item">
+                    <div class="logo-img-container"><img src="logo_elevenlabs.png" alt="ElevenLabs"></div>
+                    <span>ElevenLabs</span>
+                    <small>SFX Audio</small>
+                </div>
+            </div>
+
+            <div class="about-footer">
+                <p class="footer-label">Language Models</p>
+                <div class="footer-badges">
+                    <div class="badge-item">ChatGPT</div>
+                    <div class="badge-item">Gemini</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="leaderboard-view" class="hidden">
         <!-- Main List View -->
         <div id="leaderboard-main-view" class="view-container">

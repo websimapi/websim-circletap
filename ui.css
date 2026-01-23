@@ -658,9 +658,8 @@ button:active {
     animation: bounceOut 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
 }
 
-#music-toggle-btn, #start-leaderboard-btn {
+#music-toggle-btn, #start-leaderboard-btn, #about-btn {
     position: absolute;
-    bottom: 20px;
     background: rgba(0,0,0,0.3);
     border: none;
     border-radius: 50%;
@@ -674,22 +673,166 @@ button:active {
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s;
+    pointer-events: auto;
 }
 
 #music-toggle-btn {
+    bottom: 20px;
     right: 20px;
 }
 
 #start-leaderboard-btn {
+    bottom: 20px;
     left: 20px;
-    pointer-events: auto;
 }
 
-#music-toggle-btn:hover, #start-leaderboard-btn:hover {
+#about-btn {
+    top: 20px;
+    left: 20px;
+}
+
+#music-toggle-btn:hover, #start-leaderboard-btn:hover, #about-btn:hover {
     background: rgba(0,0,0,0.5);
+}
+
+/* About View */
+#about-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(26, 26, 46, 0.98);
+    z-index: 100;
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.about-content {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 30px 20px;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#close-about-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 2rem;
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+#close-about-btn:hover {
+    color: #fff;
+}
+
+.about-content h2 {
+    color: var(--accent-color);
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.about-content p {
+    color: #ccc;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.about-content a {
+    color: var(--success-color);
+    text-decoration: none;
+}
+
+.logo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.logo-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+}
+
+.logo-img-container {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.logo-item img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.logo-item span {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.logo-item small {
+    font-size: 0.75rem;
+    color: #888;
 }
 
 .icon-btn svg {
     width: 100%;
     height: 100%;
+}
+
+.about-footer {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.about-content .footer-label {
+    font-size: 0.75rem;
+    color: #666;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+
+.footer-badges {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.badge-item {
+    font-size: 0.8rem;
+    color: #aaa;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }

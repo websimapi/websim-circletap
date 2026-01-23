@@ -8,12 +8,21 @@ export class UIController {
         this.restartTextTimeout = null;
     }
 
+    showAbout() {
+        if(this.elements.aboutView) this.elements.aboutView.classList.remove('hidden');
+    }
+
+    hideAbout() {
+        if(this.elements.aboutView) this.elements.aboutView.classList.add('hidden');
+    }
+
     showStartMenu() {
         this.elements.startMenu.classList.remove('hidden');
         this.elements.gameOverMenu.classList.add('hidden');
         this.elements.scoreDisplay.classList.add('hidden');
         this.elements.levelDisplay.classList.add('hidden');
         this.elements.vsStatusDisplay.classList.add('hidden');
+        if(this.elements.aboutView) this.elements.aboutView.classList.add('hidden');
         this.resetVSUI();
         this.clearTimeouts(); 
         this.elements.submitScoreBtn.disabled = false;

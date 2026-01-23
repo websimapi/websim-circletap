@@ -56,7 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
         playerHearts: document.getElementById('player-hearts'),
         opponentView: document.getElementById('opponent-view'),
         difficultyIndicator: document.getElementById('difficulty-indicator'),
-        vsStatusDisplay: document.getElementById('vs-status-display')
+        vsStatusDisplay: document.getElementById('vs-status-display'),
+
+        // About view
+        aboutBtn: document.getElementById('about-btn'),
+        aboutView: document.getElementById('about-view'),
+        closeAboutBtn: document.getElementById('close-about-btn')
     };
 
     const game = new Game(canvas);
@@ -280,6 +285,21 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             leaderboardOrigin = 'start';
             leaderboardController.show('easy');
+        });
+    }
+
+    // About Button (Start Menu)
+    if (elements.aboutBtn) {
+        elements.aboutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            ui.showAbout();
+        });
+    }
+
+    if (elements.closeAboutBtn) {
+        elements.closeAboutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            ui.hideAbout();
         });
     }
 
